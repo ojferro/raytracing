@@ -12,6 +12,14 @@ mod geometry{
         pub p: point3,
         pub normal: vec3,
         pub t: f64,
+        pub front_face: bool,
+    }
+
+    impl HitRecord{
+        pub fn set_face_normal(&mut self, ray: &Ray, outward_normal: &vec3){
+            self.front_face = vec3::dot(&ray.dir, &outward_normal) < 0.0;
+            if self.front_face {self.normal = *outward_normal;}else{self.normal = -(*outward_normal);}
+        }
     }
 
     // Parent trait for all hittable geometry
@@ -36,7 +44,7 @@ mod geometry{
             let oc: vec3 = ray.origin - self.center;
 
             let a = ray.dir.length_squared();
-            let half_b = vec3::dot(oc, ray.dir);
+            let half_b = vec3::dot(&oc, &ray.dir);
             let c = oc.length_squared() - self.radius*self.radius;
 
             let discriminant = half_b*half_b-a*c;
@@ -56,6 +64,9 @@ mod geometry{
             hit_record.t = root;
             hit_record.p = ray.at(hit_record.t);
             hit_record.normal = (hit_record.p-self.center)/self.radius;
+
+            let outward_normal = (hit_record.p - self.center)/self.radius;
+            hit_record.set_face_normal(ray, &outward_normal);
 
             return true;
             

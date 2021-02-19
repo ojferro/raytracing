@@ -21,26 +21,11 @@ fn write_colour(colour: vec3){
     print!("{} {} {}\n", ir, ig, ib);
 }
 
-/// COLLISIONS
-
-// fn hit_sphere(&center: &point3, radius: f64, &ray: &Ray) -> f64{
-//     let oc: vec3 = ray.origin - center;
-//     let a = ray.dir.length_squared();
-//     let half_b = vec3::dot(oc, ray.dir);
-//     let c = oc.length_squared() - radius*radius;
-//     let discriminant = half_b*half_b-a*c;
-//     if discriminant<0.0{
-//         return -1.0;
-//     }else{
-//         return -(half_b + discriminant.sqrt())/a;
-//     }
-// }
-
 /// RAY
 
 fn ray_colour(&ray: &Ray) -> colour{
     let s: Sphere = Sphere::new(point3::new(0.0,0.0,-1.0), 0.5);
-    let mut hr = geometry::HitRecord{p: point3::new(0.0,0.0,0.0), normal: vec3::new(0.0,0.0,0.0), t: 0.0};
+    let mut hr = geometry::HitRecord{p: point3::new(0.0,0.0,0.0), normal: vec3::new(0.0,0.0,0.0), t: 0.0, front_face:true};
 
     let did_hit = s.hit(&ray, -10.0, 10.0, &mut hr); //TODO
     if did_hit { //hit sphere

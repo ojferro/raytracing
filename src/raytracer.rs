@@ -4,26 +4,14 @@ mod vector;
 use ray::Ray;
 mod ray;
 
+use geometry::Sphere;
+use geometry::Hittable;
+mod geometry;
+
 use vec3 as colour;
 use vec3 as point3;
 
 ////////////////////////// UTILITY FUNCTIONS /////////////////////////
-/// 
-/// VEC
-
-fn dot(v1: vec3, v2: vec3) -> f64{
-    v1.x*v2.x+v1.y*v2.y+v1.z*v2.z
-}
-
-fn cross(v1: vec3, v2: vec3) -> vec3{
-    vec3::new(v1.y * v2.z - v1.z * v2.y,
-        v1.z * v2.x - v1.x * v2.z,
-        v1.x * v2.y - v1.y * v2.x)
-}
-
-fn unit_vector(v1: vec3) -> vec3{
-    v1/v1.length()
-}
 
 /// COLOUR
 fn write_colour(colour: vec3){
@@ -35,28 +23,31 @@ fn write_colour(colour: vec3){
 
 /// COLLISIONS
 
-fn hit_sphere(&center: &point3, radius: f64, &ray: &Ray) -> f64{
-    let oc: vec3 = ray.origin - center;
-    let a = ray.dir.length_squared();
-    let half_b = dot(oc, ray.dir);
-    let c = oc.length_squared() - radius*radius;
-    let discriminant = half_b*half_b-a*c;
-    if discriminant<0.0{
-        return -1.0;
-    }else{
-        return -(half_b + discriminant.sqrt())/a;
-    }
-}
+// fn hit_sphere(&center: &point3, radius: f64, &ray: &Ray) -> f64{
+//     let oc: vec3 = ray.origin - center;
+//     let a = ray.dir.length_squared();
+//     let half_b = vec3::dot(oc, ray.dir);
+//     let c = oc.length_squared() - radius*radius;
+//     let discriminant = half_b*half_b-a*c;
+//     if discriminant<0.0{
+//         return -1.0;
+//     }else{
+//         return -(half_b + discriminant.sqrt())/a;
+//     }
+// }
 
 /// RAY
 
 fn ray_colour(&ray: &Ray) -> colour{
-    let t = hit_sphere(&point3::new(0.0,0.0,-1.0), 0.5, &ray);
-    if t>0.0 { //hit sphere
-        let N: vec3 = unit_vector(ray.at(t)-vec3::new(0.0,0.0,-1.0));
+    let s: Sphere = Sphere::new(point3::new(0.0,0.0,-1.0), 0.5);
+    let mut hr = geometry::HitRecord{p: point3::new(0.0,0.0,0.0), normal: vec3::new(0.0,0.0,0.0), t: 0.0};
+
+    let did_hit = s.hit(&ray, -10.0, 10.0, &mut hr); //TODO
+    if did_hit { //hit sphere
+        let N: vec3 = vec3::unit_vector(ray.at(hr.t)-vec3::new(0.0,0.0,-1.0));
         return colour::new(N.x+1.0, N.y+1.0, N.z+1.0)*0.5;
     }
-    let unit_dir: vec3 = unit_vector(ray.dir);
+    let unit_dir: vec3 = vec3::unit_vector(ray.dir);
     let t = 0.5*unit_dir.y+1.0;
 
     colour::new(1.0, 1.0, 1.0)*(1.0-t) + colour::new(0.5, 0.7, 1.0)*t

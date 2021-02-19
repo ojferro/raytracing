@@ -41,10 +41,6 @@ fn ray_colour(&ray: &Ray) -> colour{
 //////////////////////////////////////////////////////////////////////////////
 
 fn main(){
-    // let v1 = vec3::new(1.0,2.0,3.0);
-    // let v2 = vec3::new(2.0,4.0,3.0);
-    // let result = dot(v1, v2);
-    // eprintln!("result: {:?}", result);
     // IMAGE
     let aspect_ratio = 16.0/9.0 as f64;
     let image_width = 400;

@@ -1,16 +1,3 @@
-// use std::ops; // To allow for operator overloading
-// use std::fmt; // For printing out structs
-// use std::marker::Copy;
-
-
-// use vector::vec3;
-
-// use vec3 as colour;
-// use vec3 as point3;
-
-// pub use self::ray::Ray;
-
-
 pub use self::ray::Ray;
 
 mod ray{

@@ -3,7 +3,6 @@ pub use self::ray::Ray;
 mod ray{
     use crate::vector::vec3;
 
-    use vec3 as colour;
     use vec3 as point3;
 
     #[derive(Copy, Clone)]

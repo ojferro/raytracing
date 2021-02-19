@@ -1,13 +1,15 @@
-pub use self::geometry::Sphere;
-pub use self::geometry::Hittable;
 pub use self::geometry::HitRecord;
+pub use self::geometry::Hittable;
+pub use self::geometry::Sphere;
+pub use self::geometry::HittableList;
 
 mod geometry{
     use crate::vector::vec3;
     use crate::ray::Ray;
     use vec3 as point3;
 
-    // Store information about ray hits
+    ///////////////////////// Store information about ray hits /////////////////////////
+    #[derive(Copy, Clone)]
     pub struct HitRecord {
         pub p: point3,
         pub normal: vec3,
@@ -22,12 +24,16 @@ mod geometry{
         }
     }
 
-    // Parent trait for all hittable geometry
-    pub trait Hittable {
-        fn hit(self, ray: &Ray, t_min: f64, t_max: f64, hit_record: &mut HitRecord) -> bool;
+    impl Default for HitRecord{
+        fn default() -> Self {HitRecord{p: point3::new(0.0,0.0,0.0), normal: vec3::new(0.0,0.0,0.0), t: 0.0, front_face: true}}
     }
 
-    // Sphere
+    ///////////////////////// Parent trait for all hittable geometry /////////////////////////
+    pub trait Hittable {
+        fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, hit_record: &mut HitRecord) -> bool;
+    }
+
+    /////////////////////////// Sphere /////////////////////////
     pub struct Sphere{
         pub center: point3,
         pub radius: f64,
@@ -40,7 +46,7 @@ mod geometry{
     }
 
     impl Hittable for Sphere{
-        fn hit(self, ray: &Ray, t_min: f64, t_max: f64, hit_record: &mut HitRecord) -> bool{
+        fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, hit_record: &mut HitRecord) -> bool{
             let oc: vec3 = ray.origin - self.center;
 
             let a = ray.dir.length_squared();
@@ -70,6 +76,42 @@ mod geometry{
 
             return true;
             
+        }
+    }
+
+    ///////////////////////////// Hittable List ///////////////////////////////
+    
+    pub struct HittableList{
+        pub list: Vec<Box<dyn Hittable>>,
+    }
+
+    impl HittableList{
+        pub fn new() -> Self {
+            Self {list: Vec::new()}
+        }
+        pub fn add(&mut self, hittable: Box<dyn Hittable>){
+            self.list.push(hittable);
+        }
+    }
+
+    impl Hittable for HittableList{
+        fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, hit_record: &mut HitRecord) -> bool{
+            let mut temp_hr = HitRecord{..Default::default()};
+            let mut hit_something = false;
+            let mut closest_so_far = t_max;
+
+            for object in self.list.iter(){
+                if object.hit(ray, t_min, closest_so_far, &mut temp_hr){
+                    hit_something = true;
+                    closest_so_far = temp_hr.t;
+
+                    hit_record.p = temp_hr.p;
+                    hit_record.normal = temp_hr.normal;
+                    hit_record.t = temp_hr.t;
+                    hit_record.front_face = temp_hr.front_face;
+                }
+            }
+            hit_something
         }
     }
 }

@@ -12,7 +12,7 @@ use vec3 as point3;
 /// VEC
 
 fn dot(v1: vec3, v2: vec3) -> f64{
-    v1.x*v2.x+v1.y*v2.y+v1.z+v2.y
+    v1.x*v2.x+v1.y*v2.y+v1.z*v2.z
 }
 
 fn cross(v1: vec3, v2: vec3) -> vec3{
@@ -33,9 +33,29 @@ fn write_colour(colour: vec3){
     print!("{} {} {}\n", ir, ig, ib);
 }
 
+/// COLLISIONS
+
+fn hit_sphere(&center: &point3, radius: f64, &ray: &Ray) -> f64{
+    let oc: vec3 = ray.origin - center;
+    let a = ray.dir.length_squared();
+    let half_b = dot(oc, ray.dir);
+    let c = oc.length_squared() - radius*radius;
+    let discriminant = half_b*half_b-a*c;
+    if discriminant<0.0{
+        return -1.0;
+    }else{
+        return -(half_b + discriminant.sqrt())/a;
+    }
+}
+
 /// RAY
 
 fn ray_colour(&ray: &Ray) -> colour{
+    let t = hit_sphere(&point3::new(0.0,0.0,-1.0), 0.5, &ray);
+    if t>0.0 { //hit sphere
+        let N: vec3 = unit_vector(ray.at(t)-vec3::new(0.0,0.0,-1.0));
+        return colour::new(N.x+1.0, N.y+1.0, N.z+1.0)*0.5;
+    }
     let unit_dir: vec3 = unit_vector(ray.dir);
     let t = 0.5*unit_dir.y+1.0;
 
@@ -45,14 +65,19 @@ fn ray_colour(&ray: &Ray) -> colour{
 //////////////////////////////////////////////////////////////////////////////
 
 fn main(){
+    // let v1 = vec3::new(1.0,2.0,3.0);
+    // let v2 = vec3::new(2.0,4.0,3.0);
+    // let result = dot(v1, v2);
+    // eprintln!("result: {:?}", result);
     // IMAGE
-    let aspect_ratio = 16.0/9.0;
+    let aspect_ratio = 16.0/9.0 as f64;
     let image_width = 400;
-    let image_height = image_width/aspect_ratio as u32;
+    let image_height = (image_width as f64/aspect_ratio) as u32;
+    eprintln!("W: {}, H: {}", image_width, image_height);
 
     // Camera
 
-    let viewport_height = 2.0;
+    let viewport_height = 2.0f64;
     let viewport_width = aspect_ratio * viewport_height;
     let focal_length = 1.0;
 
@@ -61,26 +86,16 @@ fn main(){
     let vertical = vec3::new(0.0, viewport_height, 0.0);
     let lower_left_corner = origin - horizontal/2.0 - vertical/2.0 - vec3::new(0.0, 0.0, focal_length);
 
-    let mut v1 = vec3::new(1.0, 2.0, 3.0);
-    eprintln!("The vector is {:?}.", v1);
-    eprintln!("X is: {}", v1.x);
-
     print!("P3\n{} {}\n255\n", image_width, image_height);
     for j in (0 .. image_height).rev(){
         // Debug msg
         eprint!("\rScanlines remaining: {}     ", j);
         for i in 0..image_width{
-            // colour is an alias for vec3
-            let c: colour = colour::new(
-                (i as f64)/(image_width-1) as f64,
-                (j as f64)/(image_height-1) as f64,
-                0.25);
-
             let u = i as f64 / (image_width-1) as f64;
             let v = j as f64 / (image_height-1) as f64;
             let r = Ray::new(origin, lower_left_corner + horizontal*u + vertical*v - origin);
-            let pixel_color: colour = ray_colour(&r);
-            write_colour(c);
+            let px_colour: colour = ray_colour(&r);
+            write_colour(px_colour);
         }
     }
     eprintln!("\nDone!");

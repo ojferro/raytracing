@@ -23,6 +23,19 @@ mod vector{
         pub fn length(self) -> f64{
             self.length_squared().sqrt()
         }
+        pub fn dot(v1: vec3, v2: vec3) -> f64{
+            v1.x*v2.x+v1.y*v2.y+v1.z*v2.z
+        }
+        
+        pub fn cross(v1: vec3, v2: vec3) -> vec3{
+            vec3::new(v1.y * v2.z - v1.z * v2.y,
+                v1.z * v2.x - v1.x * v2.z,
+                v1.x * v2.y - v1.y * v2.x)
+        }
+        
+        pub fn unit_vector(v1: vec3) -> vec3{
+            v1/v1.length()
+        }
     }
 
     impl fmt::Debug for vec3 {

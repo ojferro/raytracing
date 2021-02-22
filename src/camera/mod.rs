@@ -4,7 +4,6 @@ mod camera{
     use crate::vector::vec3;
     use crate::ray::Ray;
     use vec3 as point3;
-    use vec3 as colour;
 
     #[derive(Copy, Clone)]
     pub struct Camera {

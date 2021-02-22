@@ -48,12 +48,16 @@ mod vector{
                 )
         }
         pub fn random_in_unit_sphere() -> vec3{
+            // TODO: Very inefficient right now. Fix.
             loop{
                 let p = vec3::random_in_range(-1.0, 1.0);
                 if p.length_squared() < 1.0{
                     return p;
                 }
             }
+        }
+        pub fn random_unit_vector()-> vec3{
+            vec3::unit_vector(vec3::random_in_unit_sphere())
         }
     }
 

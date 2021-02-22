@@ -17,7 +17,7 @@ use rand::Rng;
 use vec3 as colour;
 use vec3 as point3;
 
-const ANTIALISAING: bool = true;
+// const ANTIALISAING: bool = true;
 
 ////////////////////////// UTILITY FUNCTIONS /////////////////////////
 
@@ -90,7 +90,7 @@ fn main(){
         eprint!("\rScanlines remaining: {}     ", j);
         for i in 0..image_width{
             let mut px_colour = colour::new(0.0, 0.0, 0.0);
-            if ANTIALISAING{
+            if samples_per_px > 1{
                 // TODO: Improve aliasing. Make non-random.
                 // TODO: Make anti-aliasing be a second stage process (i.e. have non-aliased preliminary result, then anti-alias).
                 for s in 0..cam.samples_per_px {

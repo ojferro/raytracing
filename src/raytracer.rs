@@ -45,19 +45,26 @@ fn write_colour(mut colour: colour, samples_per_px: u32){
 
 /// RAY
 
-fn ray_colour(&ray: &Ray, scene: &Hittable, ray_bounces: usize) -> colour{
+fn ray_colour(&ray: &Ray, scene: &Hittable, ray_bounces: usize, gamma_correction: bool) -> colour{
     if ray_bounces <=0{ return colour::new(0.0, 0.0, 0.0);}
 
     let mut hr = geometry::HitRecord{p: point3::new(0.0,0.0,0.0), normal: vec3::new(0.0,0.0,0.0), t: 0.0, front_face:true};
 
     if scene.hit(&ray, 0.001, f64::INFINITY, &mut hr) { //hit anything in scene
         let target: point3 = hr.p + hr.normal + vec3::random_in_unit_sphere();
-        return ray_colour(&Ray::new(hr.p, target-hr.p), scene, ray_bounces-1)*0.5;
+        return ray_colour(&Ray::new(hr.p, target-hr.p), scene, ray_bounces-1, gamma_correction)*0.5;
     }
     let unit_dir: vec3 = vec3::unit_vector(ray.dir);
     let t = 0.5*unit_dir.y+1.0;
 
-    colour::new(1.0, 1.0, 1.0)*(1.0-t) + colour::new(0.5, 0.7, 1.0)*t
+    let mut colour = colour::new(1.0, 1.0, 1.0)*(1.0-t) + colour::new(0.5, 0.7, 1.0)*t;
+
+    if gamma_correction{
+        colour.x = colour.x.sqrt();
+        colour.y = colour.y.sqrt();
+        colour.z = colour.z.sqrt();
+    }
+    colour
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -78,6 +85,7 @@ fn main(){
     let samples_per_px = 100;
     let mut cam = Camera::new(aspect_ratio, viewport_height, focal_length, origin, samples_per_px);
     let max_ray_bounces = 50;
+    let gamma_correction = true;
 
     // Scene
     let mut scene = HittableList::new();
@@ -97,14 +105,14 @@ fn main(){
                     let u = (i as f64 + rand_f()) / (image_width-1) as f64;
                     let v = (j as f64 + rand_f()) / (image_height-1) as f64;
                     let r = cam.get_ray(u, v);
-                    px_colour += ray_colour(&r, &scene, max_ray_bounces);
+                    px_colour += ray_colour(&r, &scene, max_ray_bounces, gamma_correction);
                 }
                 write_colour(px_colour, cam.samples_per_px);
             }else{
                 let u = i as f64 / (image_width-1) as f64;
                 let v = j as f64 / (image_height-1) as f64;
                 let r = Ray::new(origin, cam.lower_left_corner + cam.horizontal*u + cam.vertical*v - origin);
-                let px_colour: colour = ray_colour(&r, &scene, max_ray_bounces);
+                let px_colour: colour = ray_colour(&r, &scene, max_ray_bounces, gamma_correction);
 
                 write_colour(px_colour, cam.samples_per_px);
             }

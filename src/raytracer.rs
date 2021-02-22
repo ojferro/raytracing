@@ -4,21 +4,42 @@ mod vector;
 use ray::Ray;
 mod ray;
 
+use camera::Camera;
+mod camera;
+
 use geometry::Sphere;
 use geometry::Hittable;
 use geometry::HittableList;
 mod geometry;
 
+use rand::{Rng, thread_rng};
+
 use vec3 as colour;
 use vec3 as point3;
+
+const ANTIALISAING: bool = true;
 
 ////////////////////////// UTILITY FUNCTIONS /////////////////////////
 
 /// COLOUR
-fn write_colour(colour: vec3){
-    let ir = (255.999*colour.x) as i32;
-    let ig = (255.999*colour.y) as i32;
-    let ib = (255.999*colour.z) as i32;
+
+fn rand_f()->f64{
+    rand::thread_rng().gen()
+}
+
+fn clamp(x: f64, min: f64, max: f64) -> f64{
+    if x<min {return min;}
+    if x>max {return max;}
+    return x;
+}
+
+fn write_colour(mut colour: colour, samples_per_px: u32){
+    let scale = 1.0/samples_per_px as f64;
+    colour = colour*scale;
+    
+    let ir = (256.0*clamp(colour.x, 0.0, 0.999)) as i32;
+    let ig = (256.0*clamp(colour.y, 0.0, 0.999)) as i32;
+    let ib = (256.0*clamp(colour.z, 0.0, 0.999)) as i32;
     print!("{} {} {}\n", ir, ig, ib);
 }
 
@@ -41,8 +62,9 @@ fn ray_colour(&ray: &Ray, scene: &Hittable) -> colour{
 fn main(){
     // IMAGE
     let aspect_ratio = 16.0/9.0 as f64;
-    let image_width = 800;
+    let image_width = 400;
     let image_height = (image_width as f64/aspect_ratio) as u32;
+    
     eprintln!("W: {}, H: {}", image_width, image_height);
 
     // Camera
@@ -50,9 +72,8 @@ fn main(){
     let viewport_width = aspect_ratio * viewport_height;
     let focal_length = 1.0;
     let origin = point3::new(0.0, 0.0, 0.0);
-    let horizontal = vec3::new(viewport_width, 0.0, 0.0);
-    let vertical = vec3::new(0.0, viewport_height, 0.0);
-    let lower_left_corner = origin - horizontal/2.0 - vertical/2.0 - vec3::new(0.0, 0.0, focal_length);
+    let samples_per_px = 100;
+    let mut cam = Camera::new(aspect_ratio, viewport_height, focal_length, origin, samples_per_px);
 
     // Scene
     let mut scene = HittableList::new();
@@ -64,11 +85,24 @@ fn main(){
         // Debug msg
         eprint!("\rScanlines remaining: {}     ", j);
         for i in 0..image_width{
-            let u = i as f64 / (image_width-1) as f64;
-            let v = j as f64 / (image_height-1) as f64;
-            let r = Ray::new(origin, lower_left_corner + horizontal*u + vertical*v - origin);
-            let px_colour: colour = ray_colour(&r, &scene);
-            write_colour(px_colour);
+            let mut px_colour = colour::new(0.0, 0.0, 0.0);
+            if ANTIALISAING{
+                // TODO: Improve aliasing. Make non-random.
+                for s in 0..cam.samples_per_px {
+                    let u = (i as f64 + rand_f()) / (image_width-1) as f64;
+                    let v = (j as f64 + rand_f()) / (image_height-1) as f64;
+                    let r = cam.get_ray(u, v);
+                    px_colour += ray_colour(&r, &scene);
+                }
+                write_colour(px_colour, cam.samples_per_px);
+            }else{
+                let u = i as f64 / (image_width-1) as f64;
+                let v = j as f64 / (image_height-1) as f64;
+                let r = Ray::new(origin, cam.lower_left_corner + cam.horizontal*u + cam.vertical*v - origin);
+                let px_colour: colour = ray_colour(&r, &scene);
+
+                write_colour(px_colour, cam.samples_per_px);
+            }
         }
     }
     eprintln!("\nDone!");

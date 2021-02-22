@@ -82,7 +82,7 @@ fn ray_colour(&ray: &Ray, scene: &Hittable, ray_bounces: usize, gamma_correction
 fn main(){
     // IMAGE
     let aspect_ratio = 16.0/9.0 as f64;
-    let image_width: u32 = 400;
+    let image_width: u32 = 1000;
     let image_height = (image_width as f64/aspect_ratio) as u32;
 
     let num_pxls = image_width.clone()*image_height.clone();
@@ -106,7 +106,7 @@ fn main(){
     scene.add(Box::new(Sphere::new(point3::new(0.0,-100.5,-1.0), 100.0)));
     // TODO: Writing to file makes runtime increase 60x. Write to mem instead, and offload writing to file.
     // print!("P3\n{} {}\n255\n", image_width, image_height);
-    for j in (0 .. image_height){
+    for j in (0 .. image_height).rev(){
         // Debug msg
         eprint!("\rScanlines remaining: {}     ", j);
         for i in 0..image_width{

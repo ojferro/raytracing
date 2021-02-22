@@ -4,6 +4,7 @@ mod vector{
     use std::ops; // To allow for operator overloading
     use std::fmt; // For printing out structs
     use std::marker::Copy;
+    use rand::Rng;
 
     #[derive(Copy, Clone)]
     pub struct vec3 {
@@ -35,6 +36,24 @@ mod vector{
         
         pub fn unit_vector(v1: vec3) -> vec3{
             v1/v1.length()
+        }
+        pub fn random() -> vec3{
+            return vec3::new(rand::thread_rng().gen(), rand::thread_rng().gen(), rand::thread_rng().gen())
+        }
+        pub fn random_in_range(min: f64, max: f64) -> vec3{
+            return vec3::new(
+                    rand::thread_rng().gen_range(min..max),
+                    rand::thread_rng().gen_range(min..max),
+                    rand::thread_rng().gen_range(min..max)
+                )
+        }
+        pub fn random_in_unit_sphere() -> vec3{
+            loop{
+                let p = vec3::random_in_range(-1.0, 1.0);
+                if p.length_squared() < 1.0{
+                    return p;
+                }
+            }
         }
     }
 

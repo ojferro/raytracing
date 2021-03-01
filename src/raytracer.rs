@@ -12,6 +12,8 @@ mod camera;
 use geometry::Sphere;
 use geometry::Hittable;
 use geometry::HittableList;
+use geometry::Material;
+use geometry::*;
 mod geometry;
 
 use image::PPM;
@@ -23,6 +25,7 @@ use vec3 as colour;
 use vec3 as point3;
 
 // const ANTIALISAING: bool = true;
+const USE_BUFFER: bool = true; // Use buffer instead of outputting directly to file
 
 ////////////////////////// UTILITY FUNCTIONS /////////////////////////
 
@@ -46,7 +49,8 @@ fn write_colour(mut colour: colour, samples_per_px: u32, buffer: &mut PPM, i: u3
     let ig = (256.0*clamp(colour.y, 0.0, 0.999)) as u8;
     let ib = (256.0*clamp(colour.z, 0.0, 0.999)) as u8;
 
-    if false{
+    if !USE_BUFFER{
+        // TODO: only about 4% faster to use buffer. Consider removing for simplicity.
         print!("{} {} {}\n", ir, ig, ib);
     }else{
         buffer.set_pixel(i, j, RGB{r: ir, g: ig, b: ib});
@@ -55,14 +59,16 @@ fn write_colour(mut colour: colour, samples_per_px: u32, buffer: &mut PPM, i: u3
 
 /// RAY
 
-fn ray_colour(&ray: &Ray, scene: &Hittable, ray_bounces: usize, gamma_correction: bool) -> colour{
+fn ray_colour(&ray: &Ray, scene: &dyn Hittable, ray_bounces: usize, gamma_correction: bool) -> colour{
     if ray_bounces <=0{ return colour::new(0.0, 0.0, 0.0);}
 
-    let mut hr = geometry::HitRecord{p: point3::new(0.0,0.0,0.0), normal: vec3::new(0.0,0.0,0.0), t: 0.0, front_face:true};
+    let mut hr = geometry::HitRecord::default();
 
-    if scene.hit(&ray, 0.001, f64::INFINITY, &mut hr) { //hit anything in scene
-        let target: point3 = hr.p + hr.normal + vec3::random_unit_vector();
-        return ray_colour(&Ray::new(hr.p, target-hr.p), scene, ray_bounces-1, gamma_correction)*0.5;
+    if let Some(r) = scene.hit(&ray, 0.001, f64::INFINITY, &mut hr) { //hit anything in scene
+        // Compute Lambertian reflection
+        // TODO: Use r instead of recalculating it
+        // let target: point3 = hr.p + hr.normal + vec3::random_unit_vector();
+        return ray_colour(&r, scene, ray_bounces-1, gamma_correction)*0.5;
     }
     let unit_dir: vec3 = vec3::unit_vector(ray.dir);
     let t = 0.5*unit_dir.y+1.0;
@@ -82,10 +88,9 @@ fn ray_colour(&ray: &Ray, scene: &Hittable, ray_bounces: usize, gamma_correction
 fn main(){
     // IMAGE
     let aspect_ratio = 16.0/9.0 as f64;
-    let image_width: u32 = 1000;
+    let image_width: u32 = 640;
     let image_height = (image_width as f64/aspect_ratio) as u32;
 
-    let num_pxls = image_width.clone()*image_height.clone();
     let mut img_buffer = PPM::new(image_height.clone(), image_width.clone());
     
     eprintln!("W: {}, H: {}", image_width, image_height);
@@ -102,10 +107,13 @@ fn main(){
 
     // Scene
     let mut scene = HittableList::new();
-    scene.add(Box::new(Sphere::new(point3::new(0.0,0.0,-1.0), 0.5)));
-    scene.add(Box::new(Sphere::new(point3::new(0.0,-100.5,-1.0), 100.0)));
+
+    let m1: Box<dyn Material> = Box::new(geometry::Metal{});
+    let m2: Box<dyn Material> = Box::new(geometry::Metal{});
+    scene.add(Box::new(Sphere::new(point3::new(0.0,0.0,-1.0), 0.5, m1)));
+    scene.add(Box::new(Sphere::new(point3::new(0.0,-100.5,-1.0), 100.0, m2)));
     // TODO: Writing to file makes runtime increase 60x. Write to mem instead, and offload writing to file.
-    // print!("P3\n{} {}\n255\n", image_width, image_height);
+    if !USE_BUFFER{ print!("P3\n{} {}\n255\n", image_width, image_height);}
     for j in (0 .. image_height).rev(){
         // Debug msg
         eprint!("\rScanlines remaining: {}     ", j);
@@ -120,17 +128,21 @@ fn main(){
                     let r = cam.get_ray(u, v);
                     px_colour += ray_colour(&r, &scene, max_ray_bounces, gamma_correction);
                 }
-                write_colour(px_colour, cam.samples_per_px, &mut img_buffer, i, j);
+                let row;
+                if USE_BUFFER{ row = image_height-j; }else{ row = j;}
+                write_colour(px_colour, cam.samples_per_px, &mut img_buffer, i, row);
             }else{
                 let u = i as f64 / (image_width-1) as f64;
                 let v = j as f64 / (image_height-1) as f64;
                 let r = Ray::new(origin, cam.lower_left_corner + cam.horizontal*u + cam.vertical*v - origin);
                 let px_colour: colour = ray_colour(&r, &scene, max_ray_bounces, gamma_correction);
 
-                write_colour(px_colour, cam.samples_per_px, &mut img_buffer, i, j);
+                let row;
+                if USE_BUFFER{ row = image_height-j; }else{ row = j;}
+                write_colour(px_colour, cam.samples_per_px, &mut img_buffer, i, row);
             }
         }
     }
     eprintln!("\nDone!");
-    img_buffer.write_file("AAAAAA.ppm").expect("Error writing to file.");
+    img_buffer.write_file("image.ppm").expect("Error writing to file.");
 }

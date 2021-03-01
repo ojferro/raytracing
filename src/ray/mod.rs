@@ -6,7 +6,7 @@ mod ray{
     use vec3 as point3;
 
     #[derive(Copy, Clone)]
-    pub struct Ray {
+    pub struct Ray {    
         pub origin: point3,
         pub dir: vec3,
     }

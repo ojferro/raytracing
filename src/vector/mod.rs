@@ -24,6 +24,11 @@ mod vector{
         pub fn length(self) -> f64{
             self.length_squared().sqrt()
         }
+        pub fn is_near_zero(&self) -> bool{
+            let eps = 1e-8;
+            self.x < 0.0 && self.y < 0.0 && self.z < 0.0
+        }
+
         pub fn dot(v1: &vec3, v2: &vec3) -> f64{
             v1.x*v2.x+v1.y*v2.y+v1.z*v2.z
         }

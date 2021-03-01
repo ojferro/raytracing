@@ -59,6 +59,10 @@ mod vector{
         pub fn random_unit_vector()-> vec3{
             vec3::unit_vector(vec3::random_in_unit_sphere())
         }
+
+        pub fn reflect(v: vec3, n: vec3) -> vec3{
+            v-n*2.0*vec3::dot(&v, &n)
+        }
     }
 
     impl fmt::Debug for vec3 {

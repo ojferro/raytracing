@@ -2,19 +2,21 @@ pub use self::geometry::HitRecord;
 pub use self::geometry::Hittable;
 pub use self::geometry::Sphere;
 pub use self::geometry::HittableList;
+pub use self::geometry::Material;
 
 mod geometry{
     use crate::vector::vec3;
     use crate::ray::Ray;
     use vec3 as point3;
+    use vec3 as colour;
 
     ///////////////////////// Store information about ray hits /////////////////////////
-    #[derive(Copy, Clone)]
     pub struct HitRecord {
         pub p: point3,
         pub normal: vec3,
         pub t: f64,
         pub front_face: bool,
+        pub material_ptr: Box<dyn Material>
     }
 
     impl HitRecord{
@@ -25,7 +27,8 @@ mod geometry{
     }
 
     impl Default for HitRecord{
-        fn default() -> Self {HitRecord{p: point3::new(0.0,0.0,0.0), normal: vec3::new(0.0,0.0,0.0), t: 0.0, front_face: true}}
+        fn default() -> Self {HitRecord{p: point3::new(0.0,0.0,0.0), normal: vec3::new(0.0,0.0,0.0),
+                              t: 0.0, front_face: true, ..Default::default()}}
     }
 
     ///////////////////////// Parent trait for all hittable geometry /////////////////////////
@@ -37,11 +40,12 @@ mod geometry{
     pub struct Sphere{
         pub center: point3,
         pub radius: f64,
+        pub material: Box<dyn Material>,
     }
 
     impl Sphere{
-        pub fn new(center: point3, radius: f64) -> Self {
-            Self {center: center, radius: radius}
+        pub fn new(center: point3, radius: f64, material: Box<dyn Material>) -> Self {
+            Self {center: center, radius: radius, material: material}
         }
     }
 
@@ -113,5 +117,21 @@ mod geometry{
             }
             hit_something
         }
+    }
+
+    // Material Class
+    pub trait Material{
+        fn scatter(&self, r_in: &Ray, rec: &HitRecord, attenuation: colour, scattered: &mut Ray) -> &'static bool;
+    }
+    pub struct Metal{
+        pub material: Box<dyn Material>,
+    }
+    impl Material for Metal{
+        fn scatter(&self, r_in: &Ray, rec: &HitRecord, attenuation: colour, scattered: &mut Ray) ->  &'static bool{
+            &true
+        }
+    }
+    pub struct Diffuse{
+        pub material: Box<dyn Material>,
     }
 }

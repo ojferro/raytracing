@@ -5,7 +5,7 @@ pub use self::geometry::HittableList;
 
 pub use self::geometry::Material;
 pub use self::geometry::Metal;
-// pub use self::geometry::Diffuse;
+pub use self::geometry::Lambertian;
 
 mod geometry{
     use crate::vector::vec3;
@@ -35,7 +35,7 @@ mod geometry{
 
     ///////////////////////// Parent trait for all hittable geometry /////////////////////////
     pub trait Hittable {
-        fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, hit_record: &mut HitRecord) -> Option<Ray>;
+        fn hit(&self, ray: &Ray, attenuation: &mut colour, t_min: f64, t_max: f64, hit_record: &mut HitRecord) -> Option<Ray>;
     }
 
     /////////////////////////// Sphere /////////////////////////
@@ -52,7 +52,7 @@ mod geometry{
     }
 
     impl Hittable for Sphere{
-        fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, hit_record: &mut HitRecord) -> Option<Ray>{
+        fn hit(&self, ray: &Ray, attenuation: &mut colour, t_min: f64, t_max: f64, hit_record: &mut HitRecord) -> Option<Ray>{
             let oc: vec3 = ray.origin - self.center;
 
             let a = ray.dir.length_squared();
@@ -81,7 +81,12 @@ mod geometry{
             hit_record.set_face_normal(ray, &outward_normal);
 
             let target: point3 = hit_record.p + hit_record.normal + vec3::random_unit_vector();
-            return Some(Ray::new(ray.at(root), target-hit_record.p).to_owned());
+
+            let mut r_out = ray.clone();
+            self.material.scatter(ray, &mut r_out, hit_record, attenuation);
+            
+            Some(r_out)
+            // return Some(Ray::new(ray.at(root), target-hit_record.p).to_owned());
             
         }
     }
@@ -102,13 +107,13 @@ mod geometry{
     }
 
     impl Hittable for HittableList{
-        fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, hit_record: &mut HitRecord) -> Option<Ray>{
+        fn hit(&self, ray: &Ray, attenuation: &mut colour, t_min: f64, t_max: f64, hit_record: &mut HitRecord) -> Option<Ray>{
             let mut temp_hr = HitRecord{..Default::default()};
             let mut closest_so_far = t_max;
             let mut current_ray = None;
 
             for object in self.list.iter(){
-                if let Some(r) = object.hit(ray, t_min, closest_so_far, &mut temp_hr){
+                if let Some(r) = object.hit(ray, attenuation, t_min, closest_so_far, &mut temp_hr){
                     closest_so_far = temp_hr.t;
 
                     hit_record.p = temp_hr.p;
@@ -125,14 +130,21 @@ mod geometry{
 
     // Material Class
     pub trait Material{
-        fn scatter(&self, r_in: &Ray, hit_record: &HitRecord, attenuation: colour, scattered: &mut Ray) -> &'static bool;
+        fn scatter(&self, r_in: &Ray, r_out: &mut Ray, hit_record: &HitRecord, attenuation: &mut colour);
     }
 
-    pub struct Metal{}
+    #[derive(Copy, Clone)]
+    pub struct Metal{
+        pub albedo: colour, 
+    }
 
     impl Material for Metal{
-        fn scatter(&self, r_in: &Ray, hit_record: &HitRecord, attenuation: colour, scattered: &mut Ray) ->  &'static bool{
-            &true
+        fn scatter(&self, r_in: &Ray, r_out: &mut Ray, hit_record: &HitRecord, attenuation: &mut colour) {
+            let reflected = vec3::reflect(vec3::unit_vector(r_in.dir), hit_record.normal);
+
+            *attenuation = self.albedo;
+            *r_out = Ray::new(hit_record.p, reflected);
+            //TODO return albedo attenuation
         }
     }
 
@@ -140,13 +152,20 @@ mod geometry{
         pub albedo: colour
     }
 
-    // impl Material for Lambertian{
-    //     fn scatter(&self, r_in: &Ray, hit_record: &HitRecord, attenuation: colour, scattered: &mut Ray) ->  &'static bool{
+    impl Material for Lambertian{
+        fn scatter(&self, r_in: &Ray, r_out: &mut Ray,hit_record: &HitRecord, attenuation: &mut colour){
 
-    //         let scatter_dir = hit_record.normal + vec3::random_unit_vector();
-    //         Ray::new(hit_record.p, scatter_dir);
+            let  mut scatter_dir = hit_record.normal + vec3::random_unit_vector();
+
+            if scatter_dir.is_near_zero(){
+                scatter_dir = hit_record.normal;
+            }
+
+            *attenuation = self.albedo;
+            *r_out = Ray::new(hit_record.p, scatter_dir);
+            //TODO return albedo attenuation
             
-    //     }
-    // }
+        }
+    }
 
 }

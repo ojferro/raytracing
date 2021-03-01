@@ -64,7 +64,8 @@ fn ray_colour(&ray: &Ray, scene: &dyn Hittable, ray_bounces: usize, gamma_correc
 
     let mut hr = geometry::HitRecord::default();
 
-    if let Some(r) = scene.hit(&ray, 0.001, f64::INFINITY, &mut hr) { //hit anything in scene
+    let mut attenuation = colour::new(0.0,0.0,0.0);
+    if let Some(r) = scene.hit(&ray, &mut attenuation, 0.001, f64::INFINITY, &mut hr) { //hit anything in scene
         // Compute Lambertian reflection
         // TODO: Use r instead of recalculating it
         // let target: point3 = hr.p + hr.normal + vec3::random_unit_vector();
@@ -88,7 +89,7 @@ fn ray_colour(&ray: &Ray, scene: &dyn Hittable, ray_bounces: usize, gamma_correc
 fn main(){
     // IMAGE
     let aspect_ratio = 16.0/9.0 as f64;
-    let image_width: u32 = 640;
+    let image_width: u32 = 1080;
     let image_height = (image_width as f64/aspect_ratio) as u32;
 
     let mut img_buffer = PPM::new(image_height.clone(), image_width.clone());
@@ -108,10 +109,17 @@ fn main(){
     // Scene
     let mut scene = HittableList::new();
 
-    let m1: Box<dyn Material> = Box::new(geometry::Metal{});
-    let m2: Box<dyn Material> = Box::new(geometry::Metal{});
+    let m1: Box<dyn Material> = Box::new(geometry::Metal{albedo: colour::new(1.0, 0.0, 0.0)});
     scene.add(Box::new(Sphere::new(point3::new(0.0,0.0,-1.0), 0.5, m1)));
-    scene.add(Box::new(Sphere::new(point3::new(0.0,-100.5,-1.0), 100.0, m2)));
+
+    let m2: Box<dyn Material> = Box::new(geometry::Lambertian{albedo: colour::new(0.0, 0.0, 255.0)});
+    scene.add(Box::new(Sphere::new(point3::new(1.0,0.0,-1.3), 0.5, m2)));
+
+    let m3: Box<dyn Material> = Box::new(geometry::Lambertian{albedo: colour::new(255.0, 0.0, 255.0)});
+    scene.add(Box::new(Sphere::new(point3::new(-0.55,0.1,-0.5), 0.2, m3)));
+
+    let m_ground: Box<dyn Material> = Box::new(geometry::Lambertian{albedo: colour::new(0.0, 0.0, 1.0)});
+    scene.add(Box::new(Sphere::new(point3::new(0.0,-100.5,-1.0), 100.0, m_ground)));
     // TODO: Writing to file makes runtime increase 60x. Write to mem instead, and offload writing to file.
     if !USE_BUFFER{ print!("P3\n{} {}\n255\n", image_width, image_height);}
     for j in (0 .. image_height).rev(){

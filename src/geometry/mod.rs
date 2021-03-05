@@ -135,7 +135,9 @@ mod geometry{
 
     #[derive(Copy, Clone)]
     pub struct Metal{
-        pub albedo: colour, 
+        pub albedo: colour,
+        pub fuzz: f64, //Must be <1
+
     }
 
     impl Material for Metal{
@@ -143,8 +145,7 @@ mod geometry{
             let reflected = vec3::reflect(vec3::unit_vector(r_in.dir), hit_record.normal);
 
             *attenuation = self.albedo;
-            *r_out = Ray::new(hit_record.p, reflected);
-            //TODO return albedo attenuation
+            *r_out = Ray::new(hit_record.p, reflected + vec3::random_in_unit_sphere()*self.fuzz);
         }
     }
 

@@ -89,7 +89,7 @@ fn ray_colour(&ray: &Ray, scene: &dyn Hittable, ray_bounces: usize, gamma_correc
 fn main(){
     // IMAGE
     let aspect_ratio = 16.0/9.0 as f64;
-    let image_width: u32 = 680;
+    let image_width: u32 = 480;
     let image_height = (image_width as f64/aspect_ratio) as u32;
 
     let mut img_buffer = PPM::new(image_height.clone(), image_width.clone());
@@ -109,16 +109,16 @@ fn main(){
     // Scene
     let mut scene = HittableList::new();
 
-    let m1: Box<dyn Material> = Box::new(geometry::Metal{albedo: colour::new(0.90, 0.90, 0.90)});
-    scene.add(Box::new(Sphere::new(point3::new(0.0,0.0,-1.0), 0.5, m1)));
+    let m1: Box<dyn Material> = Box::new(geometry::Metal{albedo: colour::new(0.8, 0.6, 0.2), fuzz: 0.25});
+    scene.add(Box::new(Sphere::new(point3::new(1.0, 0.0, -1.0), 0.5, m1)));
 
-    let m2: Box<dyn Material> = Box::new(geometry::Lambertian{albedo: colour::new(0.0, 0.0, 0.50)});
-    scene.add(Box::new(Sphere::new(point3::new(1.0,0.0,-1.3), 0.5, m2)));
+    let m2: Box<dyn Material> = Box::new(geometry::Lambertian{albedo: colour::new(0.7, 0.3, 0.3)});
+    scene.add(Box::new(Sphere::new(point3::new(0.0, 0.0, -1.0), 0.5, m2)));
 
-    let m3: Box<dyn Material> = Box::new(geometry::Lambertian{albedo: colour::new(0.50, 0.0, 0.50)});
-    scene.add(Box::new(Sphere::new(point3::new(-0.55,0.1,-0.5), 0.2, m3)));
+    let m3: Box<dyn Material> = Box::new(geometry::Metal{albedo: colour::new(0.8, 0.8, 0.8), fuzz: 0.0});
+    scene.add(Box::new(Sphere::new(point3::new(-1.0, 0.0, -1.0), 0.5, m3)));
 
-    let m_ground: Box<dyn Material> = Box::new(geometry::Lambertian{albedo: colour::new(0.0, 0.50, 0.0)});
+    let m_ground: Box<dyn Material> = Box::new(geometry::Lambertian{albedo: colour::new(0.8, 0.8, 0.0)});
     scene.add(Box::new(Sphere::new(point3::new(0.0,-100.5,-1.0), 100.0, m_ground)));
     // TODO: Writing to file makes runtime increase 60x. Write to mem instead, and offload writing to file.
     if !USE_BUFFER{ print!("P3\n{} {}\n255\n", image_width, image_height);}

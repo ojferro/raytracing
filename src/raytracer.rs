@@ -89,7 +89,7 @@ fn ray_colour(&ray: &Ray, scene: &dyn Hittable, ray_bounces: usize, gamma_correc
 fn main(){
     // IMAGE
     let aspect_ratio = 16.0/9.0 as f64;
-    let image_width: u32 = 480;
+    let image_width: u32 = 250;
     let image_height = (image_width as f64/aspect_ratio) as u32;
 
     let mut img_buffer = PPM::new(image_height.clone(), image_width.clone());
@@ -117,6 +117,12 @@ fn main(){
 
     let m3: Box<dyn Material> = Box::new(geometry::Metal{albedo: colour::new(0.8, 0.8, 0.8), fuzz: 0.0});
     scene.add(Box::new(Sphere::new(point3::new(-1.0, 0.0, -1.0), 0.5, m3)));
+
+    let m4: Box<dyn Material> = Box::new(geometry::Dielectric{albedo: colour::new(1.0,1.0,1.0), index_of_refraction: 1.5});
+    scene.add(Box::new(Sphere::new(point3::new(0.25, 0.15, -0.5), 0.1, m4)));
+
+    let m5: Box<dyn Material> = Box::new(geometry::Dielectric{albedo: colour::new(0.9,0.9,1.0), index_of_refraction: 1.5});
+    scene.add(Box::new(Sphere::new(point3::new(-0.25, 0.15, -0.45), 0.15, m5)));
 
     let m_ground: Box<dyn Material> = Box::new(geometry::Lambertian{albedo: colour::new(0.8, 0.8, 0.0)});
     scene.add(Box::new(Sphere::new(point3::new(0.0,-100.5,-1.0), 100.0, m_ground)));

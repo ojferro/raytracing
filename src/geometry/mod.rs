@@ -6,6 +6,7 @@ pub use self::geometry::HittableList;
 pub use self::geometry::Material;
 pub use self::geometry::Metal;
 pub use self::geometry::Lambertian;
+pub use self::geometry::Dielectric;
 
 mod geometry{
     use crate::vector::vec3;
@@ -166,6 +167,33 @@ mod geometry{
             *r_out = Ray::new(hit_record.p, scatter_dir);
             //TODO return albedo attenuation
             
+        }
+    }
+
+    pub struct Dielectric{
+        pub albedo: colour,
+        pub index_of_refraction: f64,
+    }
+
+    impl Dielectric{
+        fn refract(&self, uv: vec3, n: vec3, etai_over_etat: f64) -> vec3{
+            let cos_theta = vec3::dot(&-uv,&n).min(1.0);
+            let r_out_perp = (uv+n*cos_theta)*etai_over_etat;
+            let r_out_parallel = -n*(1.0-r_out_perp.length_squared()).abs().sqrt();
+            r_out_perp+r_out_parallel
+        }
+    }
+
+    impl Material for Dielectric{
+        fn scatter(&self, r_in: &Ray, r_out: &mut Ray,hit_record: &HitRecord, attenuation: &mut colour){
+
+            *attenuation = self.albedo;//colour::new(1.0,1.0,1.0);
+
+            let refraction_ratio = if hit_record.front_face {1.0/self.index_of_refraction} else{self.index_of_refraction};
+            let unit_dir = vec3::unit_vector((*r_in).dir);
+            let refracted = self.refract(unit_dir, hit_record.normal, refraction_ratio);
+
+            *r_out = Ray::new(hit_record.p, refracted);       
         }
     }
 

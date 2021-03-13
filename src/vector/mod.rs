@@ -61,6 +61,19 @@ mod vector{
                 }
             }
         }
+        pub fn random_in_unit_disk() -> vec3{
+            // TODO: Very inefficient right now. Fix.
+            loop{
+                let p = vec3::new(
+                    rand::thread_rng().gen_range(-1.0..1.0),
+                    rand::thread_rng().gen_range(-1.0..1.0),
+                    0.0
+                );
+                if p.length_squared() >= 1.0 {continue;}
+                
+                return p;
+            }
+        }
         pub fn random_unit_vector()-> vec3{
             vec3::unit_vector(vec3::random_in_unit_sphere())
         }

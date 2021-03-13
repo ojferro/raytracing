@@ -89,7 +89,7 @@ fn ray_colour(&ray: &Ray, scene: &dyn Hittable, ray_bounces: usize, gamma_correc
 fn main(){
     // IMAGE
     let aspect_ratio = 16.0/9.0 as f64;
-    let image_width: u32 = 200;
+    let image_width: u32 = 350;
     let image_height = (image_width as f64/aspect_ratio) as u32;
 
     let mut img_buffer = PPM::new(image_height.clone(), image_width.clone());
@@ -99,10 +99,16 @@ fn main(){
     // Camera
     let origin = point3::new(0.0, 0.0, 0.0);
     let samples_per_px = 100;
-    let mut cam = Camera{..Default::default()};
-    cam.position_camera(point3::new(-1.0,1.0,1.0), point3::new(0.0, 0.0, -1.0), vec3::new(0.0,1.0,0.0));
-    print!("{:?}\n", cam);
-    cam.samples_per_px = samples_per_px;
+    // let mut cam = Camera{..Default::default()};
+    let mut cam = Camera::new(
+        90.0,
+        16.0/9.0 as f64,
+        0.0,
+        1.0,
+        point3::new(0.0,0.0,0.0),
+        point3::new(0.0,0.0,-1.0),
+        vec3::new(0.0,1.0,0.0),
+        samples_per_px);
 
     let max_ray_bounces = 50;
     let gamma_correction = true;

@@ -9,6 +9,7 @@ pub use self::geometry::Lambertian;
 pub use self::geometry::Dielectric;
 
 mod geometry{
+    use rand::Rng;
     use crate::vector::vec3;
     use crate::ray::Ray;
     use vec3 as point3;
@@ -164,9 +165,7 @@ mod geometry{
             }
 
             *attenuation = self.albedo;
-            *r_out = Ray::new(hit_record.p, scatter_dir);
-            //TODO return albedo attenuation
-            
+            *r_out = Ray::new(hit_record.p, scatter_dir);               
         }
     }
 
@@ -182,18 +181,38 @@ mod geometry{
             let r_out_parallel = -n*(1.0-r_out_perp.length_squared()).abs().sqrt();
             r_out_perp+r_out_parallel
         }
+        fn reflectance(&self, cosine: f64, ref_idx: f64) -> f64{
+            // Uses Schlick's approx. for reflectance
+            let mut r0 = ((1.0-ref_idx)/(1.0+ref_idx)).powi(2);
+            r0 + (1.0-r0)*((1.0-cosine)).powi(5)
+        }
+        fn should_reflect(&self, cosine: f64, ref_idx: f64) ->bool{
+            self.reflectance(cosine, ref_idx) > rand::thread_rng().gen()
+        }
     }
 
     impl Material for Dielectric{
         fn scatter(&self, r_in: &Ray, r_out: &mut Ray,hit_record: &HitRecord, attenuation: &mut colour){
 
-            *attenuation = self.albedo;//colour::new(1.0,1.0,1.0);
+            *attenuation = self.albedo;
 
             let refraction_ratio = if hit_record.front_face {1.0/self.index_of_refraction} else{self.index_of_refraction};
             let unit_dir = vec3::unit_vector((*r_in).dir);
-            let refracted = self.refract(unit_dir, hit_record.normal, refraction_ratio);
 
-            *r_out = Ray::new(hit_record.p, refracted);       
+            // Calculate total internal reflection
+            let cos_theta = vec3::dot(&-unit_dir, &hit_record.normal).min(1.0);
+            let sin_theta = (1.0-cos_theta*cos_theta).sqrt();
+
+            let dir;
+            if (refraction_ratio*sin_theta > 1.0) || (self.should_reflect(cos_theta, refraction_ratio)) {
+                //Reflect, internally or externally (cannot refract)
+                dir = vec3::reflect(unit_dir, hit_record.normal);
+            } else {
+                // Refract
+                dir = self.refract(unit_dir, hit_record.normal, refraction_ratio);
+            }
+
+            *r_out = Ray::new(hit_record.p, dir);       
         }
     }
 

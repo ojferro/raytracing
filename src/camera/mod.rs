@@ -5,7 +5,7 @@ mod camera{
     use crate::ray::Ray;
     use vec3 as point3;
 
-    #[derive(Copy, Clone)]
+    #[derive(Copy, Clone, Debug)]
     pub struct Camera {
         pub v_fov: f64,
         pub aspect_ratio: f64,
@@ -53,8 +53,19 @@ mod camera{
             }
         }
 
-        pub fn get_ray(self, u: f64, v: f64) -> Ray {
-            Ray::new(self.origin, self.lower_left_corner + self.horizontal*u + self.vertical*v - self.origin)
+        pub fn get_ray(self, s: f64, t: f64) -> Ray {
+            Ray::new(self.origin, self.lower_left_corner + self.horizontal*s + self.vertical*t - self.origin)
+        }
+
+        pub fn position_camera(&mut self, look_from: point3, look_at: point3, v_up: vec3) {
+            let w = vec3::unit_vector(look_from - look_at);
+            let u = vec3::unit_vector(vec3::cross(&v_up, &w));
+            let v = vec3::cross(&w,&u);
+
+            self.origin = look_from;
+            self.horizontal = u*self.viewport_width;
+            self.vertical = v*self.viewport_height;
+            self.lower_left_corner = self.origin - self.horizontal/2.0 - self.vertical/2.0 - w;
         }
     }
 
@@ -71,7 +82,7 @@ mod camera{
             let focal_length = 1.0;
 
             Camera{
-                v_fov: 90.0, // vFOV for a 50mm lens = 27.0 deg
+                v_fov: 27.0,//90.0, // vFOV for a 50mm lens = 27.0 deg
                 aspect_ratio: aspect_ratio.clone(),
                 viewport_height: vp_h,
                 viewport_width: vp_w,

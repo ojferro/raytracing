@@ -91,7 +91,7 @@ fn ray_colour(&ray: &Ray, scene: &dyn Hittable, ray_bounces: usize, gamma_correc
 fn main(){
     // IMAGE
     let aspect_ratio = 16.0/9.0 as f64;
-    let image_width: u32 = 500;
+    let image_width: u32 = 1080;
     let image_height = (image_width as f64/aspect_ratio) as u32;
 
     let mut img_buffer = PPM::new(image_height.clone(), image_width.clone());
@@ -101,10 +101,9 @@ fn main(){
     // Camera
     let origin = point3::new(0.0, 0.0, 0.0);
     let samples_per_px = 100;
-    // let mut cam = Camera{..Default::default()};
-    let cam_origin = point3::new(1.0,1.50,3.0);//point3::new(-2.0,0.50,1.0);
-    //TODO Look at not working on initialization?
-    let look_at = vec3::new(0.0,0.50,0.0);
+
+    let cam_origin = point3::new(1.0,1.50,3.0);
+    let look_at = vec3::new(0.25,0.60,0.0);
     let mut cam = Camera::new(
         27.0,
         16.0/9.0 as f64,
@@ -124,17 +123,17 @@ fn main(){
     // Yellow fuzzy metal sphere
     let m1: Box<dyn Material> = Box::new(geometry::Metal{albedo: colour::new(0.8, 0.6, 0.2), fuzz: 0.25});
     let radius = 0.5;
-    scene.add(Box::new(Sphere::new(point3::new(1.0, radius, -1.0), radius, m1)));
+    scene.add(Box::new(Sphere::new(point3::new(0.80, radius, -1.0), radius, m1)));
 
     // Red diffuse sphere
     let m2: Box<dyn Material> = Box::new(geometry::Lambertian{albedo: colour::new(0.7, 0.3, 0.3)});
-    let radius = 0.5;
-    // scene.add(Box::new(Sphere::new(point3::new(0.0, radius, -1.0), radius, m2)));
+    let radius = 0.25;
+    scene.add(Box::new(Sphere::new(point3::new(-0.10, radius, -0.10), radius, m2)));
 
     // Shiny metal sphere
     let m3: Box<dyn Material> = Box::new(geometry::Metal{albedo: colour::new(0.8, 0.8, 0.8), fuzz: 0.0});
     let radius = 0.5;
-    scene.add(Box::new(Sphere::new(point3::new(-1.0, radius, -1.0), radius, m3)));
+    scene.add(Box::new(Sphere::new(point3::new(-0.80, radius, -1.0), radius, m3)));
 
     // 3 glass spheres combined (looks like cracked glass)
     let m4: Box<dyn Material> = Box::new(geometry::Dielectric{albedo: colour::new(1.0,1.0,1.0), index_of_refraction: 1.5});

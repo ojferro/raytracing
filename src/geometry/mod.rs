@@ -84,15 +84,11 @@ mod geometry{
             let outward_normal = (hit_record.p - self.center)/self.radius;
             hit_record.set_face_normal(ray, &outward_normal);
 
-            let target: point3 = hit_record.p + hit_record.normal + vec3::random_unit_vector();
-
             // TODO: Optimize unnecessary cloning
             let mut r_out = ray.clone();
             self.material.scatter(ray, &mut r_out, hit_record, attenuation);
             
-            Some(r_out)
-            // return Some(Ray::new(ray.at(root), target-hit_record.p).to_owned());
-            
+            Some(r_out)            
         }
     }
 
@@ -116,30 +112,20 @@ mod geometry{
             
             hit_record.t = vec3::dot(&(self.point-ray.origin), &self.normal)/vec3::dot(&self.normal, &ray.dir);
 
-            if hit_record.t < t_min || hit_record.t > t_max { //TODO remove
+            if hit_record.t < t_min || hit_record.t > t_max {
                 return None;
             }
 
             hit_record.p = ray.at(hit_record.t);
             hit_record.normal = self.normal;
 
-            // if self.single_sided && vec3::dot(&ray.dir, &self.normal) > 0.0{
-            //     // If hitting on the back side, make invisible
-            //     // return None;
-            //     hit_record.front_face = false;
-
-            // }
-
             hit_record.set_face_normal(ray, &hit_record.normal.clone());
 
             // TODO: Optimize unnecessary cloning
             let mut r_out = ray.clone();
             self.material.scatter(ray, &mut r_out, hit_record, attenuation);
-            // attenuation = attenuation*colour::new()
 
-            Some(r_out)
-            // return Some(Ray::new(ray.at(root), target-hit_record.p).to_owned());
-            
+            Some(r_out)            
         }
     }
 
@@ -169,6 +155,7 @@ mod geometry{
 
     impl Hittable for Cube{
         fn hit(&self, ray: &Ray, attenuation: &mut colour, t_min: f64, t_max: f64, hit_record: &mut HitRecord) -> Option<Ray>{
+            // Uses Smit's Algorithm
             let mut tmin;
             let mut tmax;
             let tymin;
@@ -217,10 +204,6 @@ mod geometry{
             if tmin < t_max && tmax > t_min{
                 // TODO: Improve inefficient cloning
                 let mut r_out = ray.clone();
-                // self.material.scatter(ray, &mut r_out, hit_record, attenuation);
-                // attenuation.x = 0.0;
-                // attenuation.y = 0.0;
-                // attenuation.z = 0.0;
                 hit_record.t = tmin;
                 hit_record.p = ray.at(hit_record.t);
                 let eps = 1.0001;

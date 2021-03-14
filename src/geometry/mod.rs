@@ -145,8 +145,10 @@ mod geometry{
 
     /////////////////////////// Cube /////////////////////////
     pub struct Cube{
-        // pub center: point3,
-        // pub side: f64,
+        pub center: point3,
+        pub w: f64,
+        pub h: f64,
+        pub d: f64,
         pub corner0: vec3,
         pub corner1: vec3,
         // TODO: Allow rotation
@@ -154,8 +156,14 @@ mod geometry{
     }
 
     impl Cube{
-        pub fn new(corner0: vec3, corner1: vec3, material: Box<dyn Material>) -> Self {
-            Self {corner0: corner0, corner1: corner1, material: material}
+        pub fn new(center: point3, w: f64, h: f64, d: f64, material: Box<dyn Material>) -> Self {
+            Self {center: center,//(corner1-corner0)/2.0 + corner0,
+                corner0: center+vec3::new(-w/2.0, -h/2.0, -d/2.0),
+                corner1: center+vec3::new(w/2.0, h/2.0, d/2.0),
+                w: w,
+                h: h,
+                d: d,
+                material: material}
         }
     }
 
@@ -208,97 +216,26 @@ mod geometry{
 
             if tmin < t_max && tmax > t_min{
                 // TODO: Improve inefficient cloning
-                let r_out = ray.clone();
+                let mut r_out = ray.clone();
                 // self.material.scatter(ray, &mut r_out, hit_record, attenuation);
-                attenuation.x = 0.0;
-                attenuation.y = 0.0;
-                attenuation.z = 0.0;
+                // attenuation.x = 0.0;
+                // attenuation.y = 0.0;
+                // attenuation.z = 0.0;
+                hit_record.t = tmin;
+                hit_record.p = ray.at(hit_record.t);
+                let eps = 1.0001;
 
-                // print!("hit");
+                // Note: Need integer division (not floor) to deal with negative numbers properly
+                hit_record.normal.x = (eps*(hit_record.p-self.center).x/(self.w/2.0)) as i32 as f64;
+                hit_record.normal.y = (eps*(hit_record.p-self.center).y/(self.h/2.0)) as i32 as f64;
+                hit_record.normal.z = (eps*(hit_record.p-self.center).z/(self.d/2.0)) as i32 as f64;
+                hit_record.normal = vec3::unit_vector(hit_record.normal);
+                self.material.scatter(ray, &mut r_out, hit_record, attenuation);
 
                 return Some(r_out);
             }
 
-            None
-            // let xmin = self.center.x-self.side;
-            // let xmax = self.center.x+self.side;
-            // let ymin = self.center.y-self.side;
-            // let ymax = self.center.y+self.side;
-            // let zmin = self.center.z-self.side;
-            // let zmax = self.center.z+self.side;
-
-            // let txmin = (xmin-ray.origin.x)/ray.dir.x;
-            // let tymin = (ymin-ray.origin.y)/ray.dir.y;
-            // let tzmin = (zmin-ray.origin.z)/ray.dir.z;
-
-            // let txmax = (xmax-ray.origin.x)/ray.dir.x;
-            // let tymax = (ymax-ray.origin.y)/ray.dir.y;
-            // let tzmax = (zmax-ray.origin.z)/ray.dir.z;
-
-            // let tx_enter = txmin.min(txmax);
-            // let tx_exit = txmin.max(txmax);
-            // let ty_enter = tymin.min(tymax);
-            // let ty_exit = tymin.max(tymax);
-            // let tz_enter = tzmin.min(tzmax);
-            // let tz_exit = tzmin.max(tzmax);
-
-            // let t_enter = tx_enter.max(ty_enter.max(tz_enter));
-            // // let t_exit = tx_exit.min(ty_exit.max(tz_exit));
-
-            // hit_record.t = t_enter;
-            // hit_record.p = ray.at(hit_record.t);
-
-            // if hit_record.p.x>xmin && hit_record.p.x < xmax &&
-            //    hit_record.p.y>ymin && hit_record.p.y < ymax &&
-            //    hit_record.p.z>zmin && hit_record.p.z < zmax{
-
-            //    }
-
-            // hit_record.t = t_enter;
-            // hit_record.p = ray.at(hit_record.t);
-            // hit_record.normal = vec3::new(1.0,0.0,0.0);
-            // let mut r_out = ray.clone();
-            // self.material.scatter(ray, &mut r_out, hit_record, attenuation);
-
-            // Some(r_out)
-
-            
-            // let oc: vec3 = ray.origin - self.center;
-
-            // let a = ray.dir.length_squared();
-            // let half_b = vec3::dot(&oc, &ray.dir);
-            // let c = oc.length_squared() - self.radius*self.radius;
-
-            // let discriminant = half_b*half_b-a*c;
-            // if discriminant<0.0{ return None; }
-            
-            // let d_sqrt = discriminant.sqrt();
-
-            // //Find nearest root in acceptable range
-            // let mut root = -(half_b+d_sqrt)/a;
-            // if root<t_min || t_max<root {
-            //     root = (-half_b+d_sqrt)/a;
-            //     if root<t_min||t_max<root{
-            //         return None;
-            //     }
-            // }
-
-            // hit_record.t = root;
-            // hit_record.p = ray.at(hit_record.t);
-            // hit_record.normal = (hit_record.p-self.center)/self.radius;
-
-            // let outward_normal = (hit_record.p - self.center)/self.radius;
-            // hit_record.set_face_normal(ray, &outward_normal);
-
-            // let target: point3 = hit_record.p + hit_record.normal + vec3::random_unit_vector();
-
-            // // TODO: Optimize unnecessary cloning
-            // let mut r_out = ray.clone();
-            // self.material.scatter(ray, &mut r_out, hit_record, attenuation);
-            
-            // Some(r_out)
-            // return Some(Ray::new(ray.at(root), target-hit_record.p).to_owned());
-            
+            None            
         }
     }
 

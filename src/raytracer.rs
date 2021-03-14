@@ -10,6 +10,8 @@ use camera::Camera;
 mod camera;
 
 use geometry::Sphere;
+use geometry::Cube;
+use geometry::Plane;
 use geometry::Hittable;
 use geometry::HittableList;
 use geometry::Material;
@@ -89,7 +91,7 @@ fn ray_colour(&ray: &Ray, scene: &dyn Hittable, ray_bounces: usize, gamma_correc
 fn main(){
     // IMAGE
     let aspect_ratio = 16.0/9.0 as f64;
-    let image_width: u32 = 1080;
+    let image_width: u32 = 500;
     let image_height = (image_width as f64/aspect_ratio) as u32;
 
     let mut img_buffer = PPM::new(image_height.clone(), image_width.clone());
@@ -100,8 +102,9 @@ fn main(){
     let origin = point3::new(0.0, 0.0, 0.0);
     let samples_per_px = 100;
     // let mut cam = Camera{..Default::default()};
-    let cam_origin = point3::new(-2.0,0.50,1.0);
-    let look_at = vec3::new(0.0,-1.0,0.0);
+    let cam_origin = point3::new(0.0,0.50,4.0);//point3::new(-2.0,0.50,1.0);
+    //TODO Look at not working on initialization?
+    let look_at = vec3::new(0.0,0.50,0.0);
     let mut cam = Camera::new(
         27.0,
         16.0/9.0 as f64,
@@ -118,31 +121,52 @@ fn main(){
     // Scene
     let mut scene = HittableList::new();
 
+    // Yellow fuzzy metal sphere
     let m1: Box<dyn Material> = Box::new(geometry::Metal{albedo: colour::new(0.8, 0.6, 0.2), fuzz: 0.25});
-    scene.add(Box::new(Sphere::new(point3::new(1.0, 0.0, -1.0), 0.5, m1)));
+    let radius = 0.5;
+    scene.add(Box::new(Sphere::new(point3::new(1.0, radius, -1.0), radius, m1)));
 
+    // Red diffuse sphere
     let m2: Box<dyn Material> = Box::new(geometry::Lambertian{albedo: colour::new(0.7, 0.3, 0.3)});
-    scene.add(Box::new(Sphere::new(point3::new(0.0, 0.0, -1.0), 0.5, m2)));
+    let radius = 0.5;
+    scene.add(Box::new(Sphere::new(point3::new(0.0, radius, -1.0), radius, m2)));
 
+    // Shiny metal sphere
     let m3: Box<dyn Material> = Box::new(geometry::Metal{albedo: colour::new(0.8, 0.8, 0.8), fuzz: 0.0});
-    scene.add(Box::new(Sphere::new(point3::new(-1.0, 0.0, -1.0), 0.5, m3)));
+    let radius = 0.5;
+    scene.add(Box::new(Sphere::new(point3::new(-1.0, radius, -1.0), radius, m3)));
 
     // 3 glass spheres combined (looks like cracked glass)
-    let m4: Box<dyn Material> = Box::new(geometry::Dielectric{albedo: colour::new(1.0,1.0,1.0), index_of_refraction: 1.5});
-    scene.add(Box::new(Sphere::new(point3::new(0.25, 0.15, -0.5), 0.1, m4)));
-    let m4: Box<dyn Material> = Box::new(geometry::Dielectric{albedo: colour::new(1.0,1.0,1.0), index_of_refraction: 1.5});
-    scene.add(Box::new(Sphere::new(point3::new(0.30, 0.15, -0.5), 0.1, m4)));
-    let m4: Box<dyn Material> = Box::new(geometry::Dielectric{albedo: colour::new(1.0,1.0,1.0), index_of_refraction: 1.5});
-    scene.add(Box::new(Sphere::new(point3::new(0.275, 0.125, -0.5), 0.1, m4)));
+    // let m4: Box<dyn Material> = Box::new(geometry::Dielectric{albedo: colour::new(1.0,1.0,1.0), index_of_refraction: 1.5});
+    // let radius = 0.1;
+    // scene.add(Box::new(Sphere::new(point3::new(0.25, 0.15, -0.5), radius, m4)));
+    // let m4: Box<dyn Material> = Box::new(geometry::Dielectric{albedo: colour::new(1.0,1.0,1.0), index_of_refraction: 1.5});
+    // scene.add(Box::new(Sphere::new(point3::new(0.30, 0.15, -0.5), 0.1, m4)));
+    // let m4: Box<dyn Material> = Box::new(geometry::Dielectric{albedo: colour::new(1.0,1.0,1.0), index_of_refraction: 1.5});
+    // scene.add(Box::new(Sphere::new(point3::new(0.275, 0.125, -0.5), 0.1, m4)));
 
     // Hollow glass sphere
-    let m5: Box<dyn Material> = Box::new(geometry::Dielectric{albedo: colour::new(0.95,0.95,1.0), index_of_refraction: 1.5});
-    scene.add(Box::new(Sphere::new(point3::new(-0.25, 0.15, -0.42), 0.14, m5)));
-    let m5: Box<dyn Material> = Box::new(geometry::Dielectric{albedo: colour::new(0.95,0.95,1.0), index_of_refraction: 1.5});
-    scene.add(Box::new(Sphere::new(point3::new(-0.25, 0.15, -0.42), -0.13, m5)));
+    // let m5: Box<dyn Material> = Box::new(geometry::Dielectric{albedo: colour::new(0.95,0.95,1.0), index_of_refraction: 1.5});
+    // scene.add(Box::new(Sphere::new(point3::new(-0.25, 0.15, -0.42), 0.14, m5)));
+    // let m5: Box<dyn Material> = Box::new(geometry::Dielectric{albedo: colour::new(0.95,0.95,1.0), index_of_refraction: 1.5});
+    // scene.add(Box::new(Sphere::new(point3::new(-0.25, 0.15, -0.42), -0.13, m5)));
+
+    // Cube!
+    // let m6: Box<dyn Material> = Box::new(geometry::Lambertian{albedo: colour::new(0.3, 0.3, 0.7)});
+    // scene.add(Box::new(Cube::new(point3::new(0.25, 0.15, -0.5), point3::new(0.5, 0.5, -1.0), m6)));
+
+    // Plane
+    let m6: Box<dyn Material> = Box::new(geometry::Lambertian{albedo: colour::new(0.8, 0.8, 0.0)});
+    // let m6: Box<dyn Material> = Box::new(geometry::Metal{albedo: colour::new(0.8, 0.8, 0.8), fuzz: 0.0});
+    let single_sided = true;
+    scene.add(Box::new(Plane::new(point3::new(0.0,1.0,0.0), point3::new(0.0,0.0,0.0), m6, single_sided)));
+    
 
     let m_ground: Box<dyn Material> = Box::new(geometry::Lambertian{albedo: colour::new(0.8, 0.8, 0.0)});
-    scene.add(Box::new(Sphere::new(point3::new(0.0,-100.5,-1.0), 100.0, m_ground)));
+    let radius = 100.0;
+    // scene.add(Box::new(Sphere::new(point3::new(0.0,-radius,-1.0), radius, m_ground)));
+
+
     // TODO: Writing to file makes runtime increase 60x. Write to mem instead, and offload writing to file.
     if !USE_BUFFER{ print!("P3\n{} {}\n255\n", image_width, image_height);}
     for j in (0 .. image_height).rev(){

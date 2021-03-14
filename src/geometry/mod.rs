@@ -1,6 +1,8 @@
 pub use self::geometry::HitRecord;
 pub use self::geometry::Hittable;
 pub use self::geometry::Sphere;
+pub use self::geometry::Cube;
+pub use self::geometry::Plane;
 pub use self::geometry::HittableList;
 
 pub use self::geometry::Material;
@@ -84,10 +86,217 @@ mod geometry{
 
             let target: point3 = hit_record.p + hit_record.normal + vec3::random_unit_vector();
 
+            // TODO: Optimize unnecessary cloning
             let mut r_out = ray.clone();
             self.material.scatter(ray, &mut r_out, hit_record, attenuation);
             
             Some(r_out)
+            // return Some(Ray::new(ray.at(root), target-hit_record.p).to_owned());
+            
+        }
+    }
+
+    /////////////////////////// Plane /////////////////////////
+    pub struct Plane{
+        pub normal: vec3,
+        pub point: point3,
+        pub material: Box<dyn Material>,
+
+        pub single_sided: bool
+    }
+
+    impl Plane{
+        pub fn new(normal: vec3, point: point3, material: Box<dyn Material>, single_sided: bool) -> Self {
+            Self {normal: normal, point: point, material: material, single_sided: single_sided}
+        }
+    }
+
+    impl Hittable for Plane{
+        fn hit(&self, ray: &Ray, attenuation: &mut colour, t_min: f64, t_max: f64, hit_record: &mut HitRecord) -> Option<Ray>{
+            
+            hit_record.t = vec3::dot(&(self.point-ray.origin), &self.normal)/vec3::dot(&self.normal, &ray.dir);
+
+            if hit_record.t < t_min || hit_record.t > t_max { //TODO remove
+                return None;
+            }
+
+            hit_record.p = ray.at(hit_record.t);
+            hit_record.normal = self.normal;
+
+            // if self.single_sided && vec3::dot(&ray.dir, &self.normal) > 0.0{
+            //     // If hitting on the back side, make invisible
+            //     // return None;
+            //     hit_record.front_face = false;
+
+            // }
+
+            hit_record.set_face_normal(ray, &hit_record.normal.clone());
+
+            // TODO: Optimize unnecessary cloning
+            let mut r_out = ray.clone();
+            self.material.scatter(ray, &mut r_out, hit_record, attenuation);
+            // attenuation = attenuation*colour::new()
+
+            Some(r_out)
+            // return Some(Ray::new(ray.at(root), target-hit_record.p).to_owned());
+            
+        }
+    }
+
+    /////////////////////////// Cube /////////////////////////
+    pub struct Cube{
+        // pub center: point3,
+        // pub side: f64,
+        pub corner0: vec3,
+        pub corner1: vec3,
+        // TODO: Allow rotation
+        pub material: Box<dyn Material>,
+    }
+
+    impl Cube{
+        pub fn new(corner0: vec3, corner1: vec3, material: Box<dyn Material>) -> Self {
+            Self {corner0: corner0, corner1: corner1, material: material}
+        }
+    }
+
+    impl Hittable for Cube{
+        fn hit(&self, ray: &Ray, attenuation: &mut colour, t_min: f64, t_max: f64, hit_record: &mut HitRecord) -> Option<Ray>{
+            let mut tmin;
+            let mut tmax;
+            let tymin;
+            let tymax;
+            let tzmin;
+            let tzmax;
+
+            if ray.dir.x >= 0.0{
+                tmin = (self.corner0.x - ray.origin.x)/ray.dir.x;
+                tmax = (self.corner1.x - ray.origin.x)/ray.dir.x
+            } else {
+                tmin = (self.corner1.x - ray.origin.x)/ray.dir.x;
+                tmax = (self.corner0.x - ray.origin.x)/ray.dir.x;
+            }
+
+            if ray.dir.y >= 0.0{
+                tymin = (self.corner0.y - ray.origin.y)/ray.dir.y;
+                tymax = (self.corner1.y - ray.origin.y)/ray.dir.y;
+            } else {
+                tymin = (self.corner1.y - ray.origin.y)/ray.dir.y;
+                tymax = (self.corner0.y - ray.origin.y)/ray.dir.y;
+            }
+
+            if (tmin > tymax) || (tymin > tmax){
+                return None;
+            }
+
+            if tymin>tmin {tmin = tymin;}
+            if tymax<tmax {tmax = tymax;}
+
+            if ray.dir.z >= 0.0 {
+                tzmin = (self.corner0.z - ray.origin.z)/ray.dir.z;
+                tzmax = (self.corner1.z - ray.origin.z)/ray.dir.z;
+            } else {
+                tzmin = (self.corner1.z - ray.origin.z)/ray.dir.z;
+                tzmax = (self.corner0.z - ray.origin.z)/ray.dir.z;
+            }
+
+            if (tmin > tzmax) || (tzmin > tmax){
+                return None;
+            }
+
+            if tzmin>tmin {tmin = tzmin;}
+            if tzmax<tmax {tmax = tzmax;}
+
+            if tmin < t_max && tmax > t_min{
+                // TODO: Improve inefficient cloning
+                let r_out = ray.clone();
+                // self.material.scatter(ray, &mut r_out, hit_record, attenuation);
+                attenuation.x = 0.0;
+                attenuation.y = 0.0;
+                attenuation.z = 0.0;
+
+                print!("hit");
+
+                return Some(r_out);
+            }
+
+            None
+            // let xmin = self.center.x-self.side;
+            // let xmax = self.center.x+self.side;
+            // let ymin = self.center.y-self.side;
+            // let ymax = self.center.y+self.side;
+            // let zmin = self.center.z-self.side;
+            // let zmax = self.center.z+self.side;
+
+            // let txmin = (xmin-ray.origin.x)/ray.dir.x;
+            // let tymin = (ymin-ray.origin.y)/ray.dir.y;
+            // let tzmin = (zmin-ray.origin.z)/ray.dir.z;
+
+            // let txmax = (xmax-ray.origin.x)/ray.dir.x;
+            // let tymax = (ymax-ray.origin.y)/ray.dir.y;
+            // let tzmax = (zmax-ray.origin.z)/ray.dir.z;
+
+            // let tx_enter = txmin.min(txmax);
+            // let tx_exit = txmin.max(txmax);
+            // let ty_enter = tymin.min(tymax);
+            // let ty_exit = tymin.max(tymax);
+            // let tz_enter = tzmin.min(tzmax);
+            // let tz_exit = tzmin.max(tzmax);
+
+            // let t_enter = tx_enter.max(ty_enter.max(tz_enter));
+            // // let t_exit = tx_exit.min(ty_exit.max(tz_exit));
+
+            // hit_record.t = t_enter;
+            // hit_record.p = ray.at(hit_record.t);
+
+            // if hit_record.p.x>xmin && hit_record.p.x < xmax &&
+            //    hit_record.p.y>ymin && hit_record.p.y < ymax &&
+            //    hit_record.p.z>zmin && hit_record.p.z < zmax{
+
+            //    }
+
+            // hit_record.t = t_enter;
+            // hit_record.p = ray.at(hit_record.t);
+            // hit_record.normal = vec3::new(1.0,0.0,0.0);
+            // let mut r_out = ray.clone();
+            // self.material.scatter(ray, &mut r_out, hit_record, attenuation);
+
+            // Some(r_out)
+
+            
+            // let oc: vec3 = ray.origin - self.center;
+
+            // let a = ray.dir.length_squared();
+            // let half_b = vec3::dot(&oc, &ray.dir);
+            // let c = oc.length_squared() - self.radius*self.radius;
+
+            // let discriminant = half_b*half_b-a*c;
+            // if discriminant<0.0{ return None; }
+            
+            // let d_sqrt = discriminant.sqrt();
+
+            // //Find nearest root in acceptable range
+            // let mut root = -(half_b+d_sqrt)/a;
+            // if root<t_min || t_max<root {
+            //     root = (-half_b+d_sqrt)/a;
+            //     if root<t_min||t_max<root{
+            //         return None;
+            //     }
+            // }
+
+            // hit_record.t = root;
+            // hit_record.p = ray.at(hit_record.t);
+            // hit_record.normal = (hit_record.p-self.center)/self.radius;
+
+            // let outward_normal = (hit_record.p - self.center)/self.radius;
+            // hit_record.set_face_normal(ray, &outward_normal);
+
+            // let target: point3 = hit_record.p + hit_record.normal + vec3::random_unit_vector();
+
+            // // TODO: Optimize unnecessary cloning
+            // let mut r_out = ray.clone();
+            // self.material.scatter(ray, &mut r_out, hit_record, attenuation);
+            
+            // Some(r_out)
             // return Some(Ray::new(ray.at(root), target-hit_record.p).to_owned());
             
         }

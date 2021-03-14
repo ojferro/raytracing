@@ -111,7 +111,7 @@ fn main(){
         0.0,
         (cam_origin - look_at).length(),
         cam_origin,
-        point3::new(0.0,0.0,-1.0),
+        look_at,
         vec3::new(0.0,1.0,0.0),
         samples_per_px);
 

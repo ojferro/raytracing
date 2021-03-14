@@ -100,7 +100,7 @@ fn main(){
 
     // Camera
     let origin = point3::new(0.0, 0.0, 0.0);
-    let samples_per_px = 100;
+    let samples_per_px = 200;
 
     let cam_origin = point3::new(1.0,1.50,3.0);
     let look_at = vec3::new(0.25,0.60,0.0);
@@ -157,14 +157,14 @@ fn main(){
     scene.add(Box::new(Cube::new(point3::new(0.0, 0.5, -1.0), w,h,d, m6)));
 
     // Plane
-    let m6: Box<dyn Material> = Box::new(geometry::Lambertian{albedo: colour::new(0.8, 0.8, 0.0)});
+    let m6: Box<dyn Material> = Box::new(geometry::Lambertian{albedo: colour::new(0.3, 0.3, 0.3)});
     // let m6: Box<dyn Material> = Box::new(geometry::Metal{albedo: colour::new(0.8, 0.8, 0.8), fuzz: 0.0});
     let single_sided = true;
     scene.add(Box::new(Plane::new(point3::new(0.0,1.0,0.0), point3::new(0.0,0.0,0.0), m6, single_sided)));
     
 
-    let m_ground: Box<dyn Material> = Box::new(geometry::Lambertian{albedo: colour::new(0.8, 0.8, 0.0)});
-    let radius = 100.0;
+    // let m_ground: Box<dyn Material> = Box::new(geometry::Lambertian{albedo: colour::new(0.8, 0.8, 0.0)});
+    // let radius = 100.0;
     // scene.add(Box::new(Sphere::new(point3::new(0.0,-radius,-1.0), radius, m_ground)));
 
 

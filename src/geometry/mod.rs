@@ -214,7 +214,7 @@ mod geometry{
                 attenuation.y = 0.0;
                 attenuation.z = 0.0;
 
-                print!("hit");
+                // print!("hit");
 
                 return Some(r_out);
             }

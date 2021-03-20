@@ -9,6 +9,8 @@ edition = "2018"
 [dependencies]
 rand = "0.8.3"
 minifb = "0.19.2"
+crossbeam = "0.7.3"
+num_cpus = "1.13.0"
 
 [[bin]]
 name = "raytracer"

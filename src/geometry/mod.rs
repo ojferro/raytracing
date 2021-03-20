@@ -38,7 +38,7 @@ mod geometry{
     }
 
     ///////////////////////// Parent trait for all hittable geometry /////////////////////////
-    pub trait Hittable {
+    pub trait Hittable: Sync + Send {
         fn hit(&self, ray: &Ray, attenuation: &mut colour, t_min: f64, t_max: f64, hit_record: &mut HitRecord) -> Option<Ray>;
     }
 
@@ -232,13 +232,11 @@ mod geometry{
         pub fn new() -> Self {
             Self {list: Vec::new()}
         }
-        pub fn add(&mut self, hittable: Box<dyn Hittable>){
+        pub fn add(&mut self, hittable: Box<dyn Hittable + Send + Sync>){
             self.list.push(hittable);
         }
-    }
-
-    impl Hittable for HittableList{
-        fn hit(&self, ray: &Ray, attenuation: &mut colour, t_min: f64, t_max: f64, hit_record: &mut HitRecord) -> Option<Ray>{
+        // Hit is not derived from Hittable trait, it's just another method called that
+        pub fn hit(&self, ray: &Ray, attenuation: &mut colour, t_min: f64, t_max: f64, hit_record: &mut HitRecord) -> Option<Ray>{
             let mut temp_hr = HitRecord{..Default::default()};
             let mut closest_so_far = t_max;
             let mut current_ray = None;
@@ -258,13 +256,14 @@ mod geometry{
             current_ray
         }
     }
+    unsafe impl Send for HittableList {}
+    unsafe impl Sync for HittableList {}
 
     // Material Class
-    pub trait Material{
+    pub trait Material: Send + Sync{
         fn scatter(&self, r_in: &Ray, r_out: &mut Ray, hit_record: &HitRecord, attenuation: &mut colour);
     }
 
-    #[derive(Copy, Clone)]
     pub struct Metal{
         pub albedo: colour,
         pub fuzz: f64, //Must be <1
@@ -285,7 +284,7 @@ mod geometry{
     }
 
     impl Material for Lambertian{
-        fn scatter(&self, r_in: &Ray, r_out: &mut Ray,hit_record: &HitRecord, attenuation: &mut colour){
+        fn scatter(&self, _r_in: &Ray, r_out: &mut Ray,hit_record: &HitRecord, attenuation: &mut colour){
 
             let  mut scatter_dir = hit_record.normal + vec3::random_unit_vector();
 
@@ -312,7 +311,7 @@ mod geometry{
         }
         fn reflectance(&self, cosine: f64, ref_idx: f64) -> f64{
             // Uses Schlick's approx. for reflectance
-            let mut r0 = ((1.0-ref_idx)/(1.0+ref_idx)).powi(2);
+            let r0 = ((1.0-ref_idx)/(1.0+ref_idx)).powi(2);
             r0 + (1.0-r0)*((1.0-cosine)).powi(5)
         }
         fn should_reflect(&self, cosine: f64, ref_idx: f64) ->bool{

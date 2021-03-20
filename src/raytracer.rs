@@ -3,6 +3,12 @@ use minifb::{Key, Window, WindowOptions};
 
 use rand::Rng;
 
+use std::thread;
+use std::sync::Arc;
+use crossbeam::{unbounded, TryRecvError};
+// use crossbeam::crossbeam_utils::thread;
+
+
 use vector::vec3;
 mod vector;
 
@@ -12,12 +18,6 @@ mod ray;
 use camera::Camera;
 mod camera;
 
-use geometry::Sphere;
-use geometry::Cube;
-use geometry::Plane;
-use geometry::Hittable;
-use geometry::HittableList;
-use geometry::Material;
 use geometry::*;
 mod geometry;
 
@@ -44,7 +44,7 @@ fn from_u8_rgb(r: u8, g: u8, b: u8) -> u32 {
     (r << 16) | (g << 8) | b
 }
 
-fn write_colour(mut colour: colour, samples_per_px: u32, buffer: &mut Vec<u32>, i: usize, row: usize, image_width: usize, image_height: usize){
+fn write_colour(mut colour: colour, samples_per_px: usize, buffer: &mut Vec<u32>, i: usize, row: usize, image_width: usize, image_height: usize){
     let scale = 1.0/samples_per_px as f64;
     colour = colour*scale;
     
@@ -66,7 +66,7 @@ fn write_to_window(window: &mut minifb::Window, buffer: &mut Vec<u32>, width: us
 
 /// RAY
 
-fn ray_colour(&ray: &Ray, scene: &dyn Hittable, ray_bounces: usize, gamma_correction: bool) -> colour{
+fn ray_colour(&ray: &Ray, scene: &HittableList, ray_bounces: usize, gamma_correction: bool) -> colour{
     if ray_bounces <=0{ return colour::new(0.0, 0.0, 0.0);}
 
     let mut hr = geometry::HitRecord::default();
@@ -106,16 +106,12 @@ fn main(){
     .unwrap_or_else(|e| {
         panic!("{}", e);
     });
-
-    // Limit to max ~60 fps update rate
-    // window.limit_update_rate(Some(std::time::Duration::from_micros(16666))); //1/60=16666mcs
     ///////////////////////////////////////
     
     eprintln!("W: {}, H: {}", image_width, image_height);
 
     // Camera
-    let origin = point3::new(0.0, 0.0, 0.0);
-    let samples_per_px = 100;
+    let samples_per_px: usize = 100;
 
     let cam_origin = point3::new(1.0,1.30,3.0);
     let look_at = vec3::new(0.25,0.60,-0.50);
@@ -127,7 +123,7 @@ fn main(){
         cam_origin,
         look_at,
         vec3::new(0.0,1.0,0.0),
-        samples_per_px);
+        samples_per_px as u32);
 
     let max_ray_bounces = 10;
     let gamma_correction = true;
@@ -136,7 +132,7 @@ fn main(){
     let mut scene = HittableList::new();
 
     // Yellow fuzzy metal sphere
-    let m1: Box<dyn Material> = Box::new(geometry::Metal{albedo: colour::new(0.8, 0.6, 0.2), fuzz: 0.25});
+    let m1 = Box::new(geometry::Metal{albedo: colour::new(0.8, 0.6, 0.2), fuzz: 0.25});
     let radius = 0.5;
     scene.add(Box::new(Sphere::new(point3::new(0.80, radius, -1.0), radius, m1)));
 
@@ -150,14 +146,10 @@ fn main(){
     let radius = 0.5;
     scene.add(Box::new(Sphere::new(point3::new(-0.80, radius, -1.0), radius, m3)));
 
-    // 3 glass spheres combined (looks like cracked glass)
+    // Solid glass sphere
     let m4: Box<dyn Material> = Box::new(geometry::Dielectric{albedo: colour::new(1.0,1.0,1.0), index_of_refraction: 1.5});
     let radius = 0.1;
     scene.add(Box::new(Sphere::new(point3::new(0.25, 0.75, -0.5), radius, m4)));
-    // let m4: Box<dyn Material> = Box::new(geometry::Dielectric{albedo: colour::new(1.0,1.0,1.0), index_of_refraction: 1.5});
-    // scene.add(Box::new(Sphere::new(point3::new(0.30, 0.15, -0.5), 0.1, m4)));
-    // let m4: Box<dyn Material> = Box::new(geometry::Dielectric{albedo: colour::new(1.0,1.0,1.0), index_of_refraction: 1.5});
-    // scene.add(Box::new(Sphere::new(point3::new(0.275, 0.125, -0.5), 0.1, m4)));
 
     // Hollow glass sphere
     let m5: Box<dyn Material> = Box::new(geometry::Dielectric{albedo: colour::new(0.95,0.95,1.0), index_of_refraction: 1.5});
@@ -167,24 +159,109 @@ fn main(){
 
     // Cube!
     let m6: Box<dyn Material> = Box::new(geometry::Lambertian{albedo: colour::new(0.7, 0.3, 0.7)});
-    // let m6: Box<dyn Material> = Box::new(geometry::Metal{albedo: colour::new(0.2, 0.6, 0.8), fuzz: 0.1});
     let w = 0.50; let h = 0.50; let d = 0.50;
     scene.add(Box::new(Cube::new(point3::new(0.0, 0.5, -1.0), w,h,d, m6)));
 
     // Plane
     let m6: Box<dyn Material> = Box::new(geometry::Lambertian{albedo: colour::new(0.3, 0.3, 0.3)});
-    // let m6: Box<dyn Material> = Box::new(geometry::Metal{albedo: colour::new(0.8, 0.8, 0.8), fuzz: 0.0});
     let single_sided = true;
     scene.add(Box::new(Plane::new(point3::new(0.0,1.0,0.0), point3::new(0.0,0.0,0.0), m6, single_sided)));
-    
 
-    // let m_ground: Box<dyn Material> = Box::new(geometry::Lambertian{albedo: colour::new(0.8, 0.8, 0.0)});
-    // let radius = 100.0;
-    // scene.add(Box::new(Sphere::new(point3::new(0.0,-radius,-1.0), radius, m_ground)));
-
-
-    // TODO: Writing to file makes runtime increase 60x. Write to mem instead, and offload writing to file.
     if !USE_BUFFER{ print!("P3\n{} {}\n255\n", image_width, image_height);}
+
+    let num_threads = num_cpus::get()*10;
+
+    let (sender, receiver) = unbounded();
+    let scene_arc = Arc::new(scene);
+    let mut thread_handles = Vec::with_capacity(num_threads);
+
+    for i in 0..num_threads{
+        let sender_clone = sender.clone();
+        let scene_clone = scene_arc.clone();
+
+        let context = ThreadContext{
+            thread_id: i,
+            num_threads: num_threads,
+            sender: sender_clone,
+            scene: scene_clone,
+            cam: cam.clone(),
+            image_height: image_height,
+            image_width: image_width,
+            samples_per_px: samples_per_px,
+            max_ray_bounces: max_ray_bounces,
+            gamma_correction: gamma_correction
+        };
+
+        let h = thread::spawn(move || {
+            
+            let start_time = std::time::SystemTime::now();
+            calculate_some_pxls(context.thread_id, context.num_threads,  &(*context.scene), &context.cam, &context.sender, context.image_height,context.image_width,
+                context.samples_per_px, context.max_ray_bounces, context.gamma_correction);
+            if let Ok(elapsed) = start_time.elapsed(){
+                println!("\nThread: {}, signing off. t: {}", context.thread_id, elapsed.as_millis());
+            }
+
+        });
+        thread_handles.push(h);
+    }
+
+    let total_num_pxls = image_width*image_height;
+    let mut ctr=0;
+    loop{
+        match receiver.try_recv() {
+            Ok(received) => {
+                write_colour(received.c, received.num_samples, &mut img_buffer, received.col, received.row, image_width, image_height);
+                ctr += 1;
+            }
+            Err(TryRecvError::Disconnected)  =>{ println!("\nINFO: Thread disconnected or finished."); }
+            Err(TryRecvError::Empty)=> { }
+
+        }
+        
+
+        if ctr%(image_width*2)==0{
+            write_to_window(&mut window, &mut img_buffer, image_width, image_height);
+        }
+        if ctr == total_num_pxls{
+            break;
+        }
+    }
+
+    write_to_window(&mut window, &mut img_buffer, image_width as usize, image_height as usize);
+
+    for t in thread_handles{
+        t.join().unwrap();
+    }
+
+    eprintln!("\nDone!");
+    while  window.is_open() && !window.is_key_down(Key::Escape) {}
+}
+
+struct ThreadContext{
+    thread_id: usize,
+    num_threads: usize,
+    sender: crossbeam::Sender<PxData>,
+    
+    scene: Arc<HittableList>,
+    cam: Camera,
+    image_height: usize,
+    image_width: usize,
+    samples_per_px: usize,
+    max_ray_bounces: usize,
+    gamma_correction: bool
+}
+
+struct PxData{
+    c: colour,
+    row: usize,
+    col: usize,
+    num_samples: usize
+}
+
+// Use this function if you have a single thread. It calculates all pxls in the img.
+fn calculate_all_pxls(scene: &HittableList, cam: &Camera, sender: &crossbeam::Sender<PxData>,
+    image_height: usize, image_width: usize, samples_per_px: usize, max_ray_bounces: usize, gamma_correction: bool){
+    
     for j in (0 .. image_height).rev(){
         // Debug msg
         eprint!("\rScanlines remaining: {}     ", j);
@@ -197,26 +274,60 @@ fn main(){
                     let u = (i as f64 + rand_f()) / (image_width-1) as f64;
                     let v = (j as f64 + rand_f()) / (image_height-1) as f64;
                     let r = cam.get_ray(u, v);
-                    px_colour += ray_colour(&r, &scene, max_ray_bounces, gamma_correction);
+                    px_colour += ray_colour(&r, scene, max_ray_bounces, gamma_correction);
                 }
                 let row;
                 if USE_BUFFER{ row = image_height-1-j; }else{ row = j;}
-                // println!("i: {}, row: {}", i, j);
-                write_colour(px_colour, cam.samples_per_px, &mut img_buffer, i, row, image_width, image_height);
-            }else{
-                let u = i as f64 / (image_width-1) as f64;
-                let v = j as f64 / (image_height-1) as f64;
-                let r = Ray::new(origin, cam.lower_left_corner + cam.horizontal*u + cam.vertical*v - origin);
-                let px_colour: colour = ray_colour(&r, &scene, max_ray_bounces, gamma_correction);
 
-                let row;
-                if USE_BUFFER{ row = image_height-j; }else{ row = j;}
-                write_colour(px_colour, cam.samples_per_px, &mut img_buffer, i, row, image_width, image_height);
-            }
+                let px_data = PxData{c: px_colour, row: row, col: i, num_samples: samples_per_px};
+                sender.send(px_data).unwrap();
+            }//else{
+            //     let u = i as f64 / (image_width-1) as f64;
+            //     let v = j as f64 / (image_height-1) as f64;
+            //     let r = Ray::new(cam.origin, cam.lower_left_corner + cam.horizontal*u + cam.vertical*v - cam.origin);
+            //     let px_colour: colour = ray_colour(&r, scene, max_ray_bounces, gamma_correction);
+
+            //     let row;
+            //     if USE_BUFFER{ row = image_height-j; }else{ row = j;}
+            //     write_colour(px_colour, cam.samples_per_px, img_buffer, i, row, image_width, image_height);
+            // }
         }
-        write_to_window(&mut window, &mut img_buffer, image_width as usize, image_height as usize);
     }
-    write_to_window(&mut window, &mut img_buffer, image_width as usize, image_height as usize);
-    eprintln!("\nDone!");
-    while  window.is_open() && !window.is_key_down(Key::Escape) {}
+}
+
+fn calculate_some_pxls(thread_id: usize, num_threads: usize, scene: &HittableList, cam: &Camera, sender: &crossbeam::Sender<PxData>,
+    image_height: usize, image_width: usize, samples_per_px: usize, max_ray_bounces: usize, gamma_correction: bool){
+    
+    for j in (thread_id .. image_height).step_by(num_threads){
+        // Debug msg
+        // eprint!("\rScanlines remaining: {}     ", j);
+        for i in 0..image_width{
+            let mut px_colour = colour::new(0.0, 0.0, 0.0);
+            if samples_per_px > 1{
+                // TODO: Improve aliasing. Make non-random.
+                // TODO: Make anti-aliasing be a second stage process (i.e. have non-aliased preliminary result, then anti-alias).
+                for _s in 0..cam.samples_per_px {
+                    let u = (i as f64 + rand_f()) / (image_width-1) as f64;
+                    let v = (j as f64 + rand_f()) / (image_height-1) as f64;
+                    let r = cam.get_ray(u, v);
+                    px_colour += ray_colour(&r, scene, max_ray_bounces, gamma_correction);
+                }
+                let row;
+                if USE_BUFFER{ row = image_height-1-j; }else{ row = j;}
+
+                // write_colour(px_colour, cam.samples_per_px, img_buffer, i, row, image_width, image_height);
+                let px_data = PxData{c: px_colour, row: row, col: i, num_samples: samples_per_px};
+                sender.send(px_data).unwrap();
+            }//else{
+            //     let u = i as f64 / (image_width-1) as f64;
+            //     let v = j as f64 / (image_height-1) as f64;
+            //     let r = Ray::new(cam.origin, cam.lower_left_corner + cam.horizontal*u + cam.vertical*v - cam.origin);
+            //     let px_colour: colour = ray_colour(&r, scene, max_ray_bounces, gamma_correction);
+
+            //     let row;
+            //     if USE_BUFFER{ row = image_height-j; }else{ row = j;}
+            //     write_colour(px_colour, cam.samples_per_px, img_buffer, i, row, image_width, image_height);
+            // }
+        }
+    }
 }

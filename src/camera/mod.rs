@@ -72,8 +72,8 @@ mod camera{
             }
         }
 
-        pub fn get_ray(self, s: f64, t: f64) -> Ray {
-            let rd = vec3::random_in_unit_disk()*self.lens_radius;
+        pub fn get_ray(self, s: f64, t: f64, random_in_unit_disk: vec3) -> Ray {
+            let rd = random_in_unit_disk*self.lens_radius;
             let offset = self.u*rd.x + self.v*rd.y;
             Ray::new(self.origin + offset, self.lower_left_corner + self.horizontal*s + self.vertical*t - self.origin-offset)
         }

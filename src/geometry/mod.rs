@@ -39,7 +39,7 @@ mod geometry{
 
     ///////////////////////// Parent trait for all hittable geometry /////////////////////////
     pub trait Hittable: Sync + Send {
-        fn hit(&self, ray: &Ray, attenuation: &mut colour, t_min: f64, t_max: f64, hit_record: &mut HitRecord) -> Option<Ray>;
+        fn hit(&self, ray: &Ray, attenuation: &mut colour, t_min: f64, t_max: f64, hit_record: &mut HitRecord, random_seed: usize) -> Option<Ray>;
     }
 
     /////////////////////////// Sphere /////////////////////////
@@ -56,7 +56,7 @@ mod geometry{
     }
 
     impl Hittable for Sphere{
-        fn hit(&self, ray: &Ray, attenuation: &mut colour, t_min: f64, t_max: f64, hit_record: &mut HitRecord) -> Option<Ray>{
+        fn hit(&self, ray: &Ray, attenuation: &mut colour, t_min: f64, t_max: f64, hit_record: &mut HitRecord, random_seed: usize) -> Option<Ray>{
             let oc: vec3 = ray.origin - self.center;
 
             let a = ray.dir.length_squared();
@@ -86,7 +86,7 @@ mod geometry{
 
             // TODO: Optimize unnecessary cloning
             let mut r_out = ray.clone();
-            self.material.scatter(ray, &mut r_out, hit_record, attenuation);
+            self.material.scatter(ray, &mut r_out, hit_record, attenuation, random_seed);
             
             Some(r_out)            
         }
@@ -108,7 +108,7 @@ mod geometry{
     }
 
     impl Hittable for Plane{
-        fn hit(&self, ray: &Ray, attenuation: &mut colour, t_min: f64, t_max: f64, hit_record: &mut HitRecord) -> Option<Ray>{
+        fn hit(&self, ray: &Ray, attenuation: &mut colour, t_min: f64, t_max: f64, hit_record: &mut HitRecord, random_seed: usize) -> Option<Ray>{
             
             hit_record.t = vec3::dot(&(self.point-ray.origin), &self.normal)/vec3::dot(&self.normal, &ray.dir);
 
@@ -123,7 +123,7 @@ mod geometry{
 
             // TODO: Optimize unnecessary cloning
             let mut r_out = ray.clone();
-            self.material.scatter(ray, &mut r_out, hit_record, attenuation);
+            self.material.scatter(ray, &mut r_out, hit_record, attenuation, random_seed);
 
             Some(r_out)            
         }
@@ -154,7 +154,7 @@ mod geometry{
     }
 
     impl Hittable for Cube{
-        fn hit(&self, ray: &Ray, attenuation: &mut colour, t_min: f64, t_max: f64, hit_record: &mut HitRecord) -> Option<Ray>{
+        fn hit(&self, ray: &Ray, attenuation: &mut colour, t_min: f64, t_max: f64, hit_record: &mut HitRecord, random_seed: usize) -> Option<Ray>{
             // Uses Smit's Algorithm
             let mut tmin;
             let mut tmax;
@@ -213,7 +213,7 @@ mod geometry{
                 hit_record.normal.y = (eps*(hit_record.p-self.center).y/(self.h/2.0)) as i32 as f64;
                 hit_record.normal.z = (eps*(hit_record.p-self.center).z/(self.d/2.0)) as i32 as f64;
                 hit_record.normal = vec3::unit_vector(hit_record.normal);
-                self.material.scatter(ray, &mut r_out, hit_record, attenuation);
+                self.material.scatter(ray, &mut r_out, hit_record, attenuation, random_seed);
 
                 return Some(r_out);
             }
@@ -236,13 +236,13 @@ mod geometry{
             self.list.push(hittable);
         }
         // Hit is not derived from Hittable trait, it's just another method called that
-        pub fn hit(&self, ray: &Ray, attenuation: &mut colour, t_min: f64, t_max: f64, hit_record: &mut HitRecord) -> Option<Ray>{
+        pub fn hit(&self, ray: &Ray, attenuation: &mut colour, t_min: f64, t_max: f64, hit_record: &mut HitRecord, random_seed: usize) -> Option<Ray>{
             let mut temp_hr = HitRecord{..Default::default()};
             let mut closest_so_far = t_max;
             let mut current_ray = None;
 
             for object in self.list.iter(){
-                if let Some(r) = object.hit(ray, attenuation, t_min, closest_so_far, &mut temp_hr){
+                if let Some(r) = object.hit(ray, attenuation, t_min, closest_so_far, &mut temp_hr, random_seed){
                     closest_so_far = temp_hr.t;
 
                     hit_record.p = temp_hr.p;
@@ -261,7 +261,7 @@ mod geometry{
 
     // Material Class
     pub trait Material: Send + Sync{
-        fn scatter(&self, r_in: &Ray, r_out: &mut Ray, hit_record: &HitRecord, attenuation: &mut colour);
+        fn scatter(&self, r_in: &Ray, r_out: &mut Ray, hit_record: &HitRecord, attenuation: &mut colour, random_seed: usize);
     }
 
     pub struct Metal{
@@ -271,11 +271,11 @@ mod geometry{
     }
 
     impl Material for Metal{
-        fn scatter(&self, r_in: &Ray, r_out: &mut Ray, hit_record: &HitRecord, attenuation: &mut colour) {
+        fn scatter(&self, r_in: &Ray, r_out: &mut Ray, hit_record: &HitRecord, attenuation: &mut colour, random_seed: usize) {
             let reflected = vec3::reflect(vec3::unit_vector(r_in.dir), hit_record.normal);
 
             *attenuation = self.albedo;
-            *r_out = Ray::new(hit_record.p, reflected + vec3::random_in_unit_sphere()*self.fuzz);
+            *r_out = Ray::new(hit_record.p, reflected + vec3::random_in_unit_sphere(random_seed)*self.fuzz + vec3::blue_noise_cleanup()*self.fuzz);
         }
     }
 
@@ -284,9 +284,9 @@ mod geometry{
     }
 
     impl Material for Lambertian{
-        fn scatter(&self, _r_in: &Ray, r_out: &mut Ray,hit_record: &HitRecord, attenuation: &mut colour){
+        fn scatter(&self, _r_in: &Ray, r_out: &mut Ray,hit_record: &HitRecord, attenuation: &mut colour, random_seed: usize){
 
-            let  mut scatter_dir = hit_record.normal + vec3::random_unit_vector();
+            let  mut scatter_dir = hit_record.normal + vec3::random_unit_vector(random_seed) + vec3::blue_noise_cleanup();
 
             if scatter_dir.is_near_zero(){
                 scatter_dir = hit_record.normal;
@@ -320,7 +320,7 @@ mod geometry{
     }
 
     impl Material for Dielectric{
-        fn scatter(&self, r_in: &Ray, r_out: &mut Ray,hit_record: &HitRecord, attenuation: &mut colour){
+        fn scatter(&self, r_in: &Ray, r_out: &mut Ray,hit_record: &HitRecord, attenuation: &mut colour, random_seed: usize){
 
             *attenuation = self.albedo;
 

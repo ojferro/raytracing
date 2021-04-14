@@ -29,10 +29,6 @@ use vec3 as point3;
 const USE_BUFFER: bool = true;
 /// COLOUR
 
-fn rand_f()->f64{
-    rand::thread_rng().gen()
-}
-
 fn clamp(x: f64, min: f64, max: f64) -> f64{
     if x<min {return min;}
     if x>max {return max;}
@@ -66,18 +62,18 @@ fn write_to_window(window: &mut minifb::Window, buffer: &mut Vec<u32>, width: us
 
 /// RAY
 
-fn ray_colour(&ray: &Ray, scene: &HittableList, ray_bounces: usize, gamma_correction: bool) -> colour{
+fn ray_colour(&ray: &Ray, scene: &HittableList, ray_bounces: usize, gamma_correction: bool, random_seed: usize) -> colour{
     if ray_bounces <=0{ return colour::new(0.0, 0.0, 0.0);}
 
     let mut hr = geometry::HitRecord::default();
 
     let mut attenuation = colour::new(0.0,0.0,0.0);
     let max_ray_len = f64::INFINITY;
-    if let Some(r) = scene.hit(&ray, &mut attenuation, 0.001, max_ray_len, &mut hr) { //hit anything in scene
+    if let Some(r) = scene.hit(&ray, &mut attenuation, 0.001, max_ray_len, &mut hr, random_seed) { //hit anything in scene
         // Compute Lambertian reflection
         // TODO: Use r instead of recalculating it
         // let target: point3 = hr.p + hr.normal + vec3::random_unit_vector();
-        return attenuation*ray_colour(&r, scene, ray_bounces-1, gamma_correction);
+        return attenuation*ray_colour(&r, scene, ray_bounces-1, gamma_correction, random_seed);
     }
     let unit_dir: vec3 = vec3::unit_vector(ray.dir);
     let t = 0.5*unit_dir.y+1.0;
@@ -95,9 +91,18 @@ fn ray_colour(&ray: &Ray, scene: &HittableList, ray_bounces: usize, gamma_correc
 //////////////////////////////////////////////////////////////////////////////
 
 fn main(){
+
+
+    // use spherical_blue_noise::*;
+
+    // let blue_noise_vec: Vec<(f32, f32, f32)> = BlueNoiseSphere::new(16, &mut rand::thread_rng()).into_iter().collect();
+    // println!("{:?}", blue_noise_vec);
+    // return ();
+
+
     // IMAGE
     let aspect_ratio = 16.0/9.0 as f64;
-    let image_width: usize = 1080;
+    let image_width: usize = 800;
     let image_height = (image_width as f64/aspect_ratio) as usize;
 
     /////////// SET UP DISPAY /////////////
@@ -286,9 +291,9 @@ fn main(){
         }
         
 
-        if ctr%(image_width*2)==0{
-            write_to_window(&mut window, &mut img_buffer, image_width, image_height);
-        }
+        // if ctr%(image_width*2)==0{
+        //     write_to_window(&mut window, &mut img_buffer, image_width, image_height);
+        // }
         if ctr == total_num_pxls{
             break;
         }
@@ -301,7 +306,7 @@ fn main(){
     }
 
     // eprintln!("\nDone!");
-    // while  window.is_open() && !window.is_key_down(Key::Escape) {}
+    while  window.is_open() && !window.is_key_down(Key::Escape) {}
 }
 
 struct ThreadContext{
@@ -384,7 +389,7 @@ fn calculate_some_pxls(thread_id: usize,
                     0.0
                 );
                 let r = cam.get_ray(u, v, for_depth_of_field);
-                px_colour += ray_colour(&r, scene, max_ray_bounces, gamma_correction);
+                px_colour += ray_colour(&r, scene, max_ray_bounces, gamma_correction, s as usize);
             }
             let row;
             if USE_BUFFER{ row = image_height-1-j; }else{ row = j;}

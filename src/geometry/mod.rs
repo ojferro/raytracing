@@ -276,7 +276,7 @@ mod geometry{
             let reflected = vec3::reflect(vec3::unit_vector(r_in.dir), hit_record.normal);
 
             *attenuation = self.albedo;
-            *r_out = Ray::new(hit_record.p, reflected + BlueNoise::random_in_unit_sphere()*self.fuzz + BlueNoise::blue_noise_cleanup(pixel_data)*self.fuzz);
+            *r_out = Ray::new(hit_record.p, reflected + BlueNoise::random_in_unit_sphere(pixel_data)*self.fuzz );//+ BlueNoise::blue_noise_cleanup(pixel_data)*self.fuzz);
         }
     }
 
@@ -287,7 +287,7 @@ mod geometry{
     impl Material for Lambertian{
         fn scatter(&self, _r_in: &Ray, r_out: &mut Ray,hit_record: &HitRecord, attenuation: &mut colour, pixel_data: (usize,usize,usize)){
 
-            let  mut scatter_dir = hit_record.normal + BlueNoise::random_in_unit_sphere() + BlueNoise::blue_noise_cleanup(pixel_data);
+            let  mut scatter_dir = hit_record.normal + BlueNoise::random_in_unit_sphere(pixel_data);// + BlueNoise::blue_noise_cleanup(pixel_data);
 
             if scatter_dir.is_near_zero(){
                 scatter_dir = hit_record.normal;

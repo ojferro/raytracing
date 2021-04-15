@@ -108,14 +108,14 @@ fn main(){
 
     // use spherical_blue_noise::*;
 
-    // let blue_noise_vec: Vec<(f32, f32, f32)> = BlueNoiseSphere::new(16, &mut rand::thread_rng()).into_iter().collect();
+    // let blue_noise_vec: Vec<(f32, f32, f32)> = BlueNoiseSphere::new(256, &mut rand::thread_rng()).into_iter().collect();
     // println!("{:?}", blue_noise_vec);
     // return ();
 
 
     // IMAGE
     let aspect_ratio = 16.0/9.0 as f64;
-    let image_width: usize = 800;
+    let image_width: usize = 1080;
     let image_height = (image_width as f64/aspect_ratio) as usize;
 
     /////////// SET UP DISPAY /////////////
@@ -129,14 +129,14 @@ fn main(){
     // eprintln!("W: {}, H: {}", image_width, image_height);
 
     // Camera
-    let samples_per_px: usize = 16;
+    let samples_per_px: usize = 24;
 
     let cam_origin = point3::new(1.0,1.30,3.0);
     let look_at = vec3::new(0.25,0.60,-0.50);
     let mut cam = Camera::new(
         27.0,
         16.0/9.0 as f64,
-        0.12,
+        0.1,
         (cam_origin - look_at).length(),
         cam_origin,
         look_at,
@@ -325,17 +325,18 @@ fn calculate_some_pxls(thread_id: usize,
             // TODO: Improve aliasing. Make non-random.
             // TODO: Make anti-aliasing be a second stage process (i.e. have non-aliased preliminary result, then anti-alias).
             for s in 0..cam.samples_per_px {
-                let offset_x = blue_noise_disc[(s%blue_noise_disc.len() as u32) as usize].0;
-                let offset_y = blue_noise_disc[(s%blue_noise_disc.len() as u32) as usize].1;
+                // let offset_x = blue_noise_disc[(s%blue_noise_disc.len() as u32) as usize].0;
+                // let offset_y = blue_noise_disc[(s%blue_noise_disc.len() as u32) as usize].1;
+                let (offset_x, offset_y) = BlueNoise::random_in_disc();
                 let u = (i as f64 + offset_x) / (image_width-1) as f64;
                 let v = (j as f64 + offset_y) / (image_height-1) as f64;
 
-                let for_depth_of_field = vec3::new(
-                    blue_noise_disc[(s%blue_noise_disc.len() as u32) as usize].0,
-                    blue_noise_disc[(s%blue_noise_disc.len() as u32) as usize].1,
-                    0.0
-                );
-                let r = cam.get_ray(u, v, for_depth_of_field + BlueNoise::blue_noise_cleanup((i,j,image_width)));
+                let (a,b) = BlueNoise::random_in_disc();
+                let for_depth_of_field = vec3::new(a, b, 0.0);
+                // let sp_bn = BlueNoise::get_screenspace(i,j,image_width);
+                // let mut cleanup_for_dof = BlueNoise::blue_noise_cleanup((i,j,image_width));
+                // cleanup_for_dof.z = 0.0;
+                let r = cam.get_ray(u, v, for_depth_of_field);
                 // let a = BlueNoise::get_screenspace((i, j, image_width));
                 px_colour += ray_colour(&r, scene, max_ray_bounces, gamma_correction, (i,j,image_width));
             }

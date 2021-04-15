@@ -64,18 +64,18 @@ fn write_to_window(window: &mut minifb::Window, buffer: &mut Vec<u32>, width: us
 
 /// RAY
 
-fn ray_colour(&ray: &Ray, scene: &HittableList, ray_bounces: usize, gamma_correction: bool, random_seed: usize) -> colour{
+fn ray_colour(&ray: &Ray, scene: &HittableList, ray_bounces: usize, gamma_correction: bool, pixel_data: (usize,usize,usize)) -> colour{
     if ray_bounces <=0{ return colour::new(0.0, 0.0, 0.0);}
 
     let mut hr = geometry::HitRecord::default();
 
     let mut attenuation = colour::new(0.0,0.0,0.0);
     let max_ray_len = f64::INFINITY;
-    if let Some(r) = scene.hit(&ray, &mut attenuation, 0.001, max_ray_len, &mut hr, random_seed) { //hit anything in scene
+    if let Some(r) = scene.hit(&ray, &mut attenuation, 0.001, max_ray_len, &mut hr, pixel_data) { //hit anything in scene
         // Compute Lambertian reflection
         // TODO: Use r instead of recalculating it
         // let target: point3 = hr.p + hr.normal + vec3::random_unit_vector();
-        return attenuation*ray_colour(&r, scene, ray_bounces-1, gamma_correction, random_seed);
+        return attenuation*ray_colour(&r, scene, ray_bounces-1, gamma_correction, pixel_data);
     }
     let unit_dir: vec3 = vec3::unit_vector(ray.dir);
     let t = 0.5*unit_dir.y+1.0;
@@ -94,6 +94,17 @@ fn ray_colour(&ray: &Ray, scene: &HittableList, ray_bounces: usize, gamma_correc
 
 fn main(){
 
+    // use image::*;
+    // let im = image::open("data/128_128_tile.png").unwrap();
+    // let pxls = im.raw_pixels().to_vec();
+    // let mut out = vec![];
+    // // print!("{}", pxls.len());
+    // for p in pxls{
+    //     // println!("{:?}", p);
+    //     out.push(p as f64/255.0);
+    // }
+    // println!("{:?}", out);
+    // return ();
 
     // use spherical_blue_noise::*;
 
@@ -324,9 +335,9 @@ fn calculate_some_pxls(thread_id: usize,
                     blue_noise_disc[(s%blue_noise_disc.len() as u32) as usize].1,
                     0.0
                 );
-                let r = cam.get_ray(u, v, for_depth_of_field+vec3::blue_noise_cleanup());
-                let a = BlueNoise::get_screenspace();
-                px_colour += ray_colour(&r, scene, max_ray_bounces, gamma_correction, s as usize);
+                let r = cam.get_ray(u, v, for_depth_of_field + BlueNoise::blue_noise_cleanup((i,j,image_width)));
+                // let a = BlueNoise::get_screenspace((i, j, image_width));
+                px_colour += ray_colour(&r, scene, max_ray_bounces, gamma_correction, (i,j,image_width));
             }
             let row;
             if USE_BUFFER{ row = image_height-1-j; }else{ row = j;}

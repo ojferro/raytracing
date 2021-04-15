@@ -54,8 +54,10 @@ mod vector{
                     rand::thread_rng().gen_range(min..max)
                 )
         }
-        pub fn random_in_unit_sphere(random_seed: usize) -> vec3{
+        pub fn random_in_unit_sphere() -> vec3{
             // let rand_rotation = rand::thread_rng().gen_range(0.0 .. 2.0*3.141592);
+            //TODO: Get rid of this random number generator
+            let random_seed = rand::thread_rng().gen_range(0 .. 64);
             let spherical_blue_noise_64 = BlueNoise::get_spherical_64();
             vec3::new(
                 spherical_blue_noise_64[random_seed%spherical_blue_noise_64.len()].0,
@@ -68,10 +70,6 @@ mod vector{
             //         return p;
             //     }
             // }
-        }
-        pub fn blue_noise_cleanup() -> vec3{
-            //TODO: Change rand for a value depending on the screen-space blue noise
-            vec3::random_in_unit_sphere(rand::thread_rng().gen_range(0..32))*0.2
         }
         pub fn random_in_unit_disk() -> vec3{
             // TODO: Very inefficient right now. Fix.
@@ -86,8 +84,8 @@ mod vector{
                 return p;
             }
         }
-        pub fn random_unit_vector(random_seed: usize)-> vec3{
-            vec3::unit_vector(vec3::random_in_unit_sphere(random_seed))
+        pub fn random_unit_vector()-> vec3{
+            vec3::unit_vector(vec3::random_in_unit_sphere())
         }
 
         pub fn reflect(v: vec3, n: vec3) -> vec3{

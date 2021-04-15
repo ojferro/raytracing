@@ -11,6 +11,8 @@ rand = "0.8.3"
 minifb = "0.19.2"
 crossbeam = "0.7.3"
 num_cpus = "1.13.0"
+#image = "0.19.0"
+#spherical_blue_noise = "0.1.1"
 
 [[bin]]
 name = "raytracer"

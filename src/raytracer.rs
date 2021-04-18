@@ -238,9 +238,9 @@ fn main(){
         }
         
 
-        // if ctr%(image_width*2)==0{
-        //     write_to_window(&mut window, &mut img_buffer, image_width, image_height);
-        // }
+        if ctr%(image_width*2)==0{
+            write_to_window(&mut window, &mut img_buffer, image_width, image_height);
+        }
         if ctr == total_num_pxls{
             break;
         }

@@ -3,7 +3,6 @@ pub use self::denoising::BlueNoise;
 
 mod denoising{
     use crate::vector::vec3;
-    use rand::Rng;
 
     pub struct BlueNoise {}
     impl BlueNoise{

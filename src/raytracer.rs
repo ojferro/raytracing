@@ -8,6 +8,9 @@ use std::sync::Arc;
 use crossbeam::{unbounded, TryRecvError};
 // use crossbeam::crossbeam_utils::thread;
 
+use scene::Scene;
+mod scene;
+
 use denoising::BlueNoise;
 mod denoising;
 
@@ -148,7 +151,7 @@ fn main(){
 
     // Scene
     // let mut scene = HittableList::new();
-    let mut scene = HittableList::get_scene();
+    let mut scene = Scene::get_scene();
 
     // // Yellow fuzzy metal sphere
     // let m1 = Box::new(geometry::Metal{albedo: colour::new(0.8, 0.6, 0.2), fuzz: 0.25});
@@ -319,7 +322,7 @@ fn calculate_some_pxls(thread_id: usize,
     blue_noise_disc: Vec<(f64,f64)>){
     
     for j in (thread_id .. image_height).step_by(num_threads){
-        let scene = HittableList::get_scene();
+        let scene = Scene::get_scene();
         // Debug msg
         // eprint!("\rScanlines remaining: {}     ", j);
         for i in 0..image_width{

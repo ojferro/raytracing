@@ -34,7 +34,7 @@ use vec3 as point3;
 const USE_BUFFER: bool = true;
 /// COLOUR
 
-fn clamp(x: f64, min: f64, max: f64) -> f64{
+fn clamp(x: f32, min: f32, max: f32) -> f32{
     if x<min {return min;}
     if x>max {return max;}
     return x;
@@ -46,7 +46,7 @@ fn from_u8_rgb(r: u8, g: u8, b: u8) -> u32 {
 }
 
 fn write_colour(mut colour: colour, samples_per_px: usize, buffer: &mut Vec<u32>, i: usize, row: usize, image_width: usize, image_height: usize){
-    let scale = 1.0/samples_per_px as f64;
+    let scale = 1.0/samples_per_px as f32;
     colour = colour*scale;
     
     let ir = (256.0*clamp(colour.x, 0.0, 0.999)) as u8;
@@ -73,7 +73,7 @@ fn ray_colour(&ray: &Ray, scene: &HittableList, ray_bounces: usize, gamma_correc
     let mut hr = geometry::HitRecord::default();
 
     let mut attenuation = colour::new(0.0,0.0,0.0);
-    let max_ray_len = f64::INFINITY;
+    let max_ray_len = f32::INFINITY;
     if let Some(r) = scene.hit(&ray, &mut attenuation, 0.001, max_ray_len, &mut hr, pixel_data) { //hit anything in scene
         // Compute Lambertian reflection
         // TODO: Use r instead of recalculating it
@@ -104,7 +104,7 @@ fn main(){
     // // print!("{}", pxls.len());
     // for p in pxls{
     //     // println!("{:?}", p);
-    //     out.push(p as f64/255.0);
+    //     out.push(p as f32/255.0);
     // }
     // println!("{:?}", out);
     // return ();
@@ -117,9 +117,9 @@ fn main(){
 
 
     // IMAGE
-    let aspect_ratio = 16.0/9.0 as f64;
-    let image_width: usize = 1080;
-    let image_height = (image_width as f64/aspect_ratio) as usize;
+    let aspect_ratio = 16.0/9.0 as f32;
+    let image_width: usize = 900;
+    let image_height = (image_width as f32/aspect_ratio) as usize;
 
     /////////// SET UP DISPAY /////////////
     let mut img_buffer: Vec<u32> = vec![0; image_width * image_height];
@@ -132,14 +132,14 @@ fn main(){
     // eprintln!("W: {}, H: {}", image_width, image_height);
 
     // Camera
-    let samples_per_px: usize = 24;
+    let samples_per_px: usize = 1;//24;
 
     let cam_origin = point3::new(1.0,1.30,3.0);
     let look_at = vec3::new(0.25,0.60,-0.50);
     let mut cam = Camera::new(
         27.0,
-        16.0/9.0 as f64,
-        0.1,
+        16.0/9.0 as f32,
+        0.0,//0.1,
         (cam_origin - look_at).length(),
         cam_origin,
         look_at,
@@ -242,7 +242,7 @@ fn main(){
         }
         
 
-        if ctr%(image_width*25)==0{
+        if ctr%(image_width*image_height)==0{
             write_to_window(&mut window, &mut img_buffer, image_width, image_height);
         }
         if ctr == total_num_pxls{
@@ -257,7 +257,7 @@ fn main(){
     }
 
     // eprintln!("\nDone!");
-    while  window.is_open() && !window.is_key_down(Key::Escape) {}
+    // while  window.is_open() && !window.is_key_down(Key::Escape) {}
 }
 
 struct ThreadContext{
@@ -272,7 +272,7 @@ struct ThreadContext{
     samples_per_px: usize,
     max_ray_bounces: usize,
     gamma_correction: bool,
-    blue_noise_disc: Vec<(f64, f64)>
+    blue_noise_disc: Vec<(f32, f32)>
 }
 
 struct PxData{
@@ -294,8 +294,8 @@ struct PxData{
 //             // TODO: Improve aliasing. Make non-random.
 //             // TODO: Make anti-aliasing be a second stage process (i.e. have non-aliased preliminary result, then anti-alias).
 //             for s in 0..cam.samples_per_px {
-//                 let u = (i as f64 + rand_f()) / (image_width-1) as f64;
-//                 let v = (j as f64 + rand_f()) / (image_height-1) as f64;
+//                 let u = (i as f32 + rand_f()) / (image_width-1) as f32;
+//                 let v = (j as f32 + rand_f()) / (image_height-1) as f32;
 //                 let r = cam.get_ray(u, v);
 //                 px_colour += ray_colour(&r, scene, max_ray_bounces, gamma_correction);
 //             }
@@ -319,7 +319,7 @@ fn calculate_some_pxls(thread_id: usize,
     samples_per_px: usize,
     max_ray_bounces: usize,
     gamma_correction: bool,
-    blue_noise_disc: Vec<(f64,f64)>){
+    blue_noise_disc: Vec<(f32,f32)>){
     
     for j in (thread_id .. image_height).step_by(num_threads){
         let scene = Scene::get_scene();
@@ -333,8 +333,8 @@ fn calculate_some_pxls(thread_id: usize,
                 // let offset_x = blue_noise_disc[(s%blue_noise_disc.len() as u32) as usize].0;
                 // let offset_y = blue_noise_disc[(s%blue_noise_disc.len() as u32) as usize].1;
                 let (offset_x, offset_y) = BlueNoise::random_in_disc();
-                let u = (i as f64 + offset_x) / (image_width-1) as f64;
-                let v = (j as f64 + offset_y) / (image_height-1) as f64;
+                let u = (i as f32 + offset_x) / (image_width-1) as f32;
+                let v = (j as f32 + offset_y) / (image_height-1) as f32;
 
                 let (a,b) = BlueNoise::random_in_disc();
                 let for_depth_of_field = vec3::new(a, b, 0.0);

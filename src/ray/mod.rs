@@ -16,7 +16,7 @@ mod ray{
             Self {origin: origin, dir: dir}
         }
 
-        pub fn at(self, t: f64) -> point3{
+        pub fn at(self, t: f32) -> point3{
             self.origin + self.dir*t
         }
     }

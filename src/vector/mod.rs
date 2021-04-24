@@ -10,20 +10,20 @@ mod vector{
 
     #[derive(Copy, Clone)]
     pub struct vec3 {
-        pub x: f64,
-        pub y: f64,
-        pub z: f64,
+        pub x: f32,
+        pub y: f32,
+        pub z: f32,
     }
 
     impl vec3 {
-        pub fn new(x: f64, y: f64, z: f64) -> Self {
+        pub fn new(x: f32, y: f32, z: f32) -> Self {
             Self { x: x, y: y, z: z }
         }
 
-        pub fn length_squared(self) -> f64{
+        pub fn length_squared(self) -> f32{
             self.x*self.x + self.y*self.y + self.z*self.z
         }
-        pub fn length(self) -> f64{
+        pub fn length(self) -> f32{
             self.length_squared().sqrt()
         }
         pub fn is_near_zero(&self) -> bool{
@@ -31,7 +31,7 @@ mod vector{
             self.x < 0.0 && self.y < 0.0 && self.z < 0.0
         }
 
-        pub fn dot(v1: &vec3, v2: &vec3) -> f64{
+        pub fn dot(v1: &vec3, v2: &vec3) -> f32{
             v1.x*v2.x+v1.y*v2.y+v1.z*v2.z
         }
         
@@ -47,7 +47,7 @@ mod vector{
         pub fn random() -> vec3{
             return vec3::new(rand::thread_rng().gen(), rand::thread_rng().gen(), rand::thread_rng().gen())
         }
-        pub fn random_in_range(min: f64, max: f64) -> vec3{
+        pub fn random_in_range(min: f32, max: f32) -> vec3{
             return vec3::new(
                     rand::thread_rng().gen_range(min..max),
                     rand::thread_rng().gen_range(min..max),
@@ -122,16 +122,16 @@ mod vector{
         }
     }
 
-    impl ops::MulAssign<f64> for vec3 {
-        fn mul_assign(&mut self, t: f64) {
+    impl ops::MulAssign<f32> for vec3 {
+        fn mul_assign(&mut self, t: f32) {
             self.x = self.x*t;
             self.y = self.y*t;
             self.z = self.z*t;
         }
     }
 
-    impl ops::DivAssign<f64> for vec3 {
-        fn div_assign(&mut self, t: f64) {
+    impl ops::DivAssign<f32> for vec3 {
+        fn div_assign(&mut self, t: f32) {
             self.x = self.x/t;
             self.y = self.y/t;
             self.z = self.z/t;
@@ -159,10 +159,10 @@ mod vector{
     }
 
 
-    impl ops::Mul<f64> for vec3 {
+    impl ops::Mul<f32> for vec3 {
         type Output = Self;
 
-        fn mul(self, t: f64) -> Self {
+        fn mul(self, t: f32) -> Self {
             Self {
                 x: self.x*t, y: self.y*t, z: self.z*t
             }
@@ -178,10 +178,10 @@ mod vector{
         }
     }
 
-    impl ops::Div<f64> for vec3 {
+    impl ops::Div<f32> for vec3 {
         type Output = Self;
 
-        fn div(self, t: f64) -> Self {
+        fn div(self, t: f32) -> Self {
             Self {
                 x: self.x/t, y: self.y/t, z: self.z/t
             }

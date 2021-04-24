@@ -7,12 +7,12 @@ mod camera{
 
     #[derive(Copy, Clone, Debug)]
     pub struct Camera {
-        pub v_fov: f64,
-        pub aspect_ratio: f64,
-        pub viewport_height: f64,
-        pub viewport_width: f64,
-        pub lens_radius: f64,
-        pub focus_dist: f64,
+        pub v_fov: f32,
+        pub aspect_ratio: f32,
+        pub viewport_height: f32,
+        pub viewport_width: f32,
+        pub lens_radius: f32,
+        pub focus_dist: f32,
 
         // u, v, w is the orthonormal vector defining camera orientation
         pub u: vec3,
@@ -27,12 +27,12 @@ mod camera{
         pub lower_left_corner: vec3,
     }
 
-    fn deg_to_rad(deg: f64) -> f64{
-        deg*std::f64::consts::PI/180.0
+    fn deg_to_rad(deg: f32) -> f32{
+        deg*std::f32::consts::PI/180.0
     }
 
     impl Camera {
-        pub fn new(v_fov: f64, aspect_ratio: f64, aperture: f64, focus_dist: f64, origin: vec3,
+        pub fn new(v_fov: f32, aspect_ratio: f32, aperture: f32, focus_dist: f32, origin: vec3,
             look_at: point3, v_up: point3, samples_per_px: u32) -> Self {
             
             let theta = deg_to_rad(v_fov);
@@ -72,7 +72,7 @@ mod camera{
             }
         }
 
-        pub fn get_ray(self, s: f64, t: f64, random_in_unit_disk: vec3) -> Ray {
+        pub fn get_ray(self, s: f32, t: f32, random_in_unit_disk: vec3) -> Ray {
             let rd = random_in_unit_disk*self.lens_radius;
             let offset = self.u*rd.x + self.v*rd.y;
             Ray::new(self.origin + offset, self.lower_left_corner + self.horizontal*s + self.vertical*t - self.origin-offset)
@@ -93,7 +93,7 @@ mod camera{
     impl Default for Camera{
         fn default() -> Self {
 
-            let aspect_ratio = 16.0/9.0 as f64;
+            let aspect_ratio = 16.0/9.0 as f32;
             let vp_h = 2.0*(deg_to_rad(90.0)/2.0).tan();
             let vp_w = aspect_ratio.clone()*vp_h.clone();
 

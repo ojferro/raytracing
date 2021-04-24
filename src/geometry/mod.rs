@@ -22,7 +22,7 @@ mod geometry{
     pub struct HitRecord {
         pub p: point3,
         pub normal: vec3,
-        pub t: f64,
+        pub t: f32,
         pub front_face: bool,
     }
 
@@ -40,24 +40,24 @@ mod geometry{
 
     ///////////////////////// Parent trait for all hittable geometry /////////////////////////
     pub trait Hittable: Sync + Send {
-        fn hit(&self, ray: &Ray, attenuation: &mut colour, t_min: f64, t_max: f64, hit_record: &mut HitRecord, pixel_data: (usize,usize,usize)) -> Option<Ray>;
+        fn hit(&self, ray: &Ray, attenuation: &mut colour, t_min: f32, t_max: f32, hit_record: &mut HitRecord, pixel_data: (usize,usize,usize)) -> Option<Ray>;
     }
 
     /////////////////////////// Sphere /////////////////////////
     pub struct Sphere{
         pub center: point3,
-        pub radius: f64,
+        pub radius: f32,
         pub material: Box<dyn Material>,
     }
 
     impl Sphere{
-        pub fn new(center: point3, radius: f64, material: Box<dyn Material>) -> Self {
+        pub fn new(center: point3, radius: f32, material: Box<dyn Material>) -> Self {
             Self {center: center, radius: radius, material: material}
         }
     }
 
     impl Hittable for Sphere{
-        fn hit(&self, ray: &Ray, attenuation: &mut colour, t_min: f64, t_max: f64, hit_record: &mut HitRecord, pixel_data: (usize,usize,usize)) -> Option<Ray>{
+        fn hit(&self, ray: &Ray, attenuation: &mut colour, t_min: f32, t_max: f32, hit_record: &mut HitRecord, pixel_data: (usize,usize,usize)) -> Option<Ray>{
             let oc: vec3 = ray.origin - self.center;
 
             let a = ray.dir.length_squared();
@@ -109,7 +109,7 @@ mod geometry{
     }
 
     impl Hittable for Plane{
-        fn hit(&self, ray: &Ray, attenuation: &mut colour, t_min: f64, t_max: f64, hit_record: &mut HitRecord, pixel_data: (usize,usize,usize)) -> Option<Ray>{
+        fn hit(&self, ray: &Ray, attenuation: &mut colour, t_min: f32, t_max: f32, hit_record: &mut HitRecord, pixel_data: (usize,usize,usize)) -> Option<Ray>{
             
             hit_record.t = vec3::dot(&(self.point-ray.origin), &self.normal)/vec3::dot(&self.normal, &ray.dir);
 
@@ -133,9 +133,9 @@ mod geometry{
     /////////////////////////// Cube /////////////////////////
     pub struct Cube{
         pub center: point3,
-        pub w: f64,
-        pub h: f64,
-        pub d: f64,
+        pub w: f32,
+        pub h: f32,
+        pub d: f32,
         pub corner0: vec3,
         pub corner1: vec3,
         // TODO: Allow rotation
@@ -143,7 +143,7 @@ mod geometry{
     }
 
     impl Cube{
-        pub fn new(center: point3, w: f64, h: f64, d: f64, material: Box<dyn Material>) -> Self {
+        pub fn new(center: point3, w: f32, h: f32, d: f32, material: Box<dyn Material>) -> Self {
             Self {center: center,//(corner1-corner0)/2.0 + corner0,
                 corner0: center+vec3::new(-w/2.0, -h/2.0, -d/2.0),
                 corner1: center+vec3::new(w/2.0, h/2.0, d/2.0),
@@ -155,7 +155,7 @@ mod geometry{
     }
 
     impl Hittable for Cube{
-        fn hit(&self, ray: &Ray, attenuation: &mut colour, t_min: f64, t_max: f64, hit_record: &mut HitRecord, pixel_data: (usize,usize,usize)) -> Option<Ray>{
+        fn hit(&self, ray: &Ray, attenuation: &mut colour, t_min: f32, t_max: f32, hit_record: &mut HitRecord, pixel_data: (usize,usize,usize)) -> Option<Ray>{
             // Uses Smit's Algorithm
             let mut tmin;
             let mut tmax;
@@ -210,9 +210,9 @@ mod geometry{
                 let eps = 1.0001;
 
                 // Note: Need integer division (not floor) to deal with negative numbers properly
-                hit_record.normal.x = (eps*(hit_record.p-self.center).x/(self.w/2.0)) as i32 as f64;
-                hit_record.normal.y = (eps*(hit_record.p-self.center).y/(self.h/2.0)) as i32 as f64;
-                hit_record.normal.z = (eps*(hit_record.p-self.center).z/(self.d/2.0)) as i32 as f64;
+                hit_record.normal.x = (eps*(hit_record.p-self.center).x/(self.w/2.0)) as i32 as f32;
+                hit_record.normal.y = (eps*(hit_record.p-self.center).y/(self.h/2.0)) as i32 as f32;
+                hit_record.normal.z = (eps*(hit_record.p-self.center).z/(self.d/2.0)) as i32 as f32;
                 hit_record.normal = vec3::unit_vector(hit_record.normal);
                 self.material.scatter(ray, &mut r_out, hit_record, attenuation, pixel_data);
 
@@ -237,7 +237,7 @@ mod geometry{
             self.list.push(hittable);
         }
         // Hit is not derived from Hittable trait, it's just another method called that
-        pub fn hit(&self, ray: &Ray, attenuation: &mut colour, t_min: f64, t_max: f64, hit_record: &mut HitRecord, pixel_data: (usize,usize,usize)) -> Option<Ray>{
+        pub fn hit(&self, ray: &Ray, attenuation: &mut colour, t_min: f32, t_max: f32, hit_record: &mut HitRecord, pixel_data: (usize,usize,usize)) -> Option<Ray>{
             let mut temp_hr = HitRecord{..Default::default()};
             let mut closest_so_far = t_max;
             let mut current_ray = None;
@@ -267,7 +267,7 @@ mod geometry{
 
     pub struct Metal{
         pub albedo: colour,
-        pub fuzz: f64, //Must be <1
+        pub fuzz: f32, //Must be <1
 
     }
 
@@ -300,22 +300,22 @@ mod geometry{
 
     pub struct Dielectric{
         pub albedo: colour,
-        pub index_of_refraction: f64,
+        pub index_of_refraction: f32,
     }
 
     impl Dielectric{
-        fn refract(&self, uv: vec3, n: vec3, etai_over_etat: f64) -> vec3{
+        fn refract(&self, uv: vec3, n: vec3, etai_over_etat: f32) -> vec3{
             let cos_theta = vec3::dot(&-uv,&n).min(1.0);
             let r_out_perp = (uv+n*cos_theta)*etai_over_etat;
             let r_out_parallel = -n*(1.0-r_out_perp.length_squared()).abs().sqrt();
             r_out_perp+r_out_parallel
         }
-        fn reflectance(&self, cosine: f64, ref_idx: f64) -> f64{
+        fn reflectance(&self, cosine: f32, ref_idx: f32) -> f32{
             // Uses Schlick's approx. for reflectance
             let r0 = ((1.0-ref_idx)/(1.0+ref_idx)).powi(2);
             r0 + (1.0-r0)*((1.0-cosine)).powi(5)
         }
-        fn should_reflect(&self, cosine: f64, ref_idx: f64) ->bool{
+        fn should_reflect(&self, cosine: f32, ref_idx: f32) ->bool{
             self.reflectance(cosine, ref_idx) > rand::thread_rng().gen()
         }
     }

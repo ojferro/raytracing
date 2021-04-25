@@ -41,12 +41,12 @@ mod denoising{
             };
             let sp_bn = BlueNoise::get_screenspace(pixel_data.0, pixel_data.1, pixel_data.2);
 
-            // vec3::new(
-            //     spherical_blue_noise_256[(seed%spherical_blue_noise_256.len() as u32) as usize].0,
-            //     spherical_blue_noise_256[(seed%spherical_blue_noise_256.len() as u32) as usize].1,
-            //     spherical_blue_noise_256[(seed%spherical_blue_noise_256.len() as u32) as usize].2
-            // )*sp_bn*1.1
-            vec3::new(0.0,0.0,0.0)
+            vec3::new(
+                spherical_blue_noise_256[(seed%spherical_blue_noise_256.len() as u32) as usize].0,
+                spherical_blue_noise_256[(seed%spherical_blue_noise_256.len() as u32) as usize].1,
+                spherical_blue_noise_256[(seed%spherical_blue_noise_256.len() as u32) as usize].2
+            )*sp_bn*1.1
+            // vec3::new(0.0,0.0,0.0)
         }
     }
 

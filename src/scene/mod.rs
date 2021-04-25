@@ -4,6 +4,7 @@ pub use self::scene::Scene;
 mod scene{
     use crate::vector::vec3;
     use crate::geometry::*;
+    use crate::camera::Camera;
 
     use vec3 as colour;
     use vec3 as point3;
@@ -54,5 +55,34 @@ mod scene{
             
             scene
         }
+
+        pub fn get_camera() -> Camera{
+
+            let cam_origin = unsafe{
+                point3::new(1.0,1.30,4.0) - vec3::new(0.0, 0.0, COUNTER as f32*0.1)
+            };
+            let look_at = vec3::new(0.25,0.60,-0.50);
+            let samples_per_px = 1;
+
+            Camera::new(
+                27.0,
+                16.0/9.0 as f32,
+                0.0,//0.1,
+                (cam_origin - look_at).length(),
+                cam_origin,
+                look_at,
+                vec3::new(0.0,1.0,0.0),
+                samples_per_px as u32)
+        }
+
+        pub fn move_cam() {
+            unsafe{
+                COUNTER += 1;
+                COUNTER %= 100;
+            }
+        }
+
     }
+
+    static mut COUNTER: u32 = 0;
 }

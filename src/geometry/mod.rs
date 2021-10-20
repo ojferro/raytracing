@@ -3,6 +3,7 @@ pub use self::geometry::Hittable;
 pub use self::geometry::Sphere;
 pub use self::geometry::Cube;
 pub use self::geometry::Plane;
+pub use self::geometry::Triangle;
 pub use self::geometry::HittableList;
 
 pub use self::geometry::Material;
@@ -219,6 +220,76 @@ mod geometry{
             }
 
             None            
+        }
+    }
+
+    /////////////////////////// Triangle /////////////////////////
+    pub struct Triangle{
+        pub v0: point3,
+        pub v1: point3,
+        pub v2: point3,
+
+        // The edges and normal are computed from vertices
+        pub edge0: vec3,
+        pub edge1: vec3,
+        pub normal: vec3,
+
+        pub material: Box<dyn Material>,
+
+        pub single_sided: bool
+    }
+
+    impl Triangle{
+        pub fn new(v0: point3, v1: point3, v2: point3, material: Box<dyn Material>, single_sided: bool) -> Self {
+            Self {v0: v0, v1: v1, v2: v2, edge0: v1-v0, edge1: v2-v0, normal: vec3::unit_vector(vec3::cross(&(v1-v0), &(v2-v0))), material: material, single_sided: single_sided}
+        }
+    }
+
+    impl Hittable for Triangle{
+        fn hit(&self, ray: &Ray, attenuation: &mut colour, t_min: f64, t_max: f64, hit_record: &mut HitRecord) -> Option<Ray>{
+            // Moller - Trumbore algorithm
+
+            let eps: f64 = 0.0000001;
+
+            let h = vec3::cross(&ray.dir, &self.edge1);
+            let a = vec3::dot(&self.edge0, &h);
+
+            if a > -eps && a < eps {
+                return None;
+            }
+            
+            let f = 1.0/a;
+            let s = ray.origin - self.v0;
+            let u = f*vec3::dot(&s, &h);
+
+            if u < 0.0 || u > 1.0{
+                return None;
+            }
+
+            let q = vec3::cross(&s, &self.edge0);
+            let v = f*vec3::dot(&ray.dir, &q);
+            if v < 0.0 || u + v > 1.0{
+                return None;
+            }
+
+            let t = f*vec3::dot(&self.edge1, &q);
+
+            if t < eps || t < t_min || t > t_max{
+                return None;
+            }
+
+            hit_record.t = t;
+
+            hit_record.p = ray.at(hit_record.t);
+            hit_record.normal = self.normal;
+
+            hit_record.set_face_normal(ray, &hit_record.normal.clone());
+
+            // TODO: Optimize unnecessary cloning
+            let mut r_out = ray.clone();
+            self.material.scatter(ray, &mut r_out, hit_record, attenuation);
+
+            Some(r_out)            
         }
     }
 

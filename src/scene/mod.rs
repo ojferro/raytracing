@@ -51,6 +51,14 @@ mod scene{
             let single_sided = true;
             scene.add(Box::new(Plane::new(point3::new(0.0,1.0,0.0), point3::new(0.0,0.0,0.0), m6, single_sided)));
 
+            // Triangles - clockwise for the top (for ease of use, does not matter for code purposes)
+            let m7: Box<dyn Material> = Box::new( Lambertian{albedo: colour::new(0.1, 0.7, 0.1)});
+            let single_sided = true;
+            scene.add(Box::new(Triangle::new(vec3::new(0.0, 1.3, -1.0), vec3::new(0.3, 1.0, -1.0), vec3::new(-0.3, 0.85, -1.0),m7, single_sided)));
+
+            let m7: Box<dyn Material> = Box::new( Lambertian{albedo: colour::new(0.1, 0.7, 0.1)});
+            let single_sided = true;
+            scene.add(Box::new(Triangle::new(vec3::new(0.3, 1.0, -1.0), vec3::new(-0.3, 0.85, -1.0), vec3::new(-0.5, 1.0, -1.3), m7, single_sided)));
 
             scene
         }

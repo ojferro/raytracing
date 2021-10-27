@@ -3,6 +3,8 @@ use minifb::{Key, Window, WindowOptions};
 
 use rand::Rng;
 
+use clap::{Arg, App};
+
 use std::thread;
 use std::sync::Arc;
 use crossbeam::{unbounded, TryRecvError};
@@ -95,9 +97,30 @@ fn ray_colour(&ray: &Ray, scene: &HittableList, ray_bounces: usize, gamma_correc
 //////////////////////////////////////////////////////////////////////////////
 
 fn main(){
+    // Args
+    let args = App::new("Raytracer")
+        .arg(Arg::with_name("samples_per_px")
+                 .short("s")
+                 .long("spp")
+                 .takes_value(true)
+                 .help("Number of samples per pixel"))
+        .arg(Arg::with_name("image_width")
+                 .short("w")
+                 .long("width")
+                 .takes_value(true)
+                 .help("Width of the image (16x9 aspect ratio)"))
+        .get_matches();
+
+    let spp = args.value_of("samples_per_px").unwrap_or("10");
+    let samples_per_px = spp.parse::<usize>().expect("Number of samples per px must be a number!");
+
+    let img_width = args.value_of("image_width").unwrap_or("640");
+    let image_width = img_width.parse::<usize>().expect("Image width must be a number!");
+
+    println!("spp {}, width {}", samples_per_px, image_width);
+    
     // IMAGE
     let aspect_ratio = 16.0/9.0 as f64;
-    let image_width: usize = 400;
     let image_height = (image_width as f64/aspect_ratio) as usize;
 
     /////////// SET UP DISPAY /////////////
@@ -111,14 +134,13 @@ fn main(){
     eprintln!("W: {}, H: {}", image_width, image_height);
 
     // Camera
-    let samples_per_px: usize = 100;
 
     let cam_origin = point3::new(1.0,1.30,3.0);
     let look_at = vec3::new(0.25,0.60,-0.50);
     let mut cam = Camera::new(
         27.0,
         16.0/9.0 as f64,
-        0.12,
+        0.05,//0.12,
         (cam_origin - look_at).length(),
         cam_origin,
         look_at,

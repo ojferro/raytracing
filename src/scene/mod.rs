@@ -4,6 +4,7 @@ pub use self::scene::Scene;
 mod scene{
     use crate::vector::vec3;
     use crate::geometry::*;
+    use crate::geometry::HittableList;
     use std::fs;
 
     use vec3 as colour;
@@ -52,16 +53,9 @@ mod scene{
             let single_sided = true;
             scene.add(Box::new(Plane::new(point3::new(0.0,1.0,0.0), point3::new(0.0,0.0,0.0), m6, single_sided)));
 
-            // Triangles - clockwise for the top (for ease of use, does not matter for code purposes)
-            let m7: Box<dyn Material> = Box::new( Lambertian{albedo: colour::new(0.1, 0.7, 0.1)});
-            let single_sided = true;
-            scene.add(Box::new(Triangle::new(vec3::new(0.0, 1.3, -1.0), vec3::new(0.3, 1.0, -1.0), vec3::new(-0.3, 0.85, -1.0),m7, single_sided)));
-
-            let m7: Box<dyn Material> = Box::new( Lambertian{albedo: colour::new(0.1, 0.7, 0.1)});
-            let single_sided = true;
-            scene.add(Box::new(Triangle::new(vec3::new(0.3, 1.0, -1.0), vec3::new(-0.3, 0.85, -1.0), vec3::new(-0.5, 1.0, -1.3), m7, single_sided)));
-
-            Scene::read_obj(String::from("assets/diamond.obj"));
+            let offset = vec3::new(1.25,0.5,0.1);
+            let scale = 0.25;
+            Scene::from_obj(String::from("assets/diamond.obj"), &mut scene, offset, scale);
 
             scene
         }
@@ -77,19 +71,38 @@ mod scene{
         
             vecs
         }
-        pub fn read_obj(path: String) {
+        pub fn face_from_txt(file_content: &String, symbol: char) -> Vec<Vec<usize>> {
+            let faces: Vec<Vec<usize>> = file_content.split("\n")
+                .filter(|line| line.chars().nth(0) != None && line.chars().nth(0).unwrap() == symbol)
+                .map(|line| line.split_whitespace()
+                    .filter(|v| v.chars().nth(0).unwrap() != symbol)
+                    .map(|v: &str| v.parse::<usize>().unwrap()).collect() )
+                .collect();
+        
+            faces
+        }
+        pub fn add_Triangles(vertices: Vec<vec3>, faces: Vec<Vec<usize>>, scene: &mut HittableList, offset: vec3, scale: f64) {
+            let single_sided = true;
+            for f in faces{
+                let material: Box<dyn Material> = Box::new( Lambertian{albedo: colour::new(0.1, 0.7, 0.1)});
+
+                let v1 = vertices[f[0]-1]*scale + offset;
+                let v2 = vertices[f[1]-1]*scale + offset;
+                let v3 = vertices[f[2]-1]*scale + offset;
+                scene.add(Box::new(Triangle::new(v1, v2, v3, material, single_sided)));
+            }
+        }
+        pub fn from_obj(path: String, scene: &mut HittableList, offset: vec3, scale: f64) {
 
             let contents = fs::read_to_string(path).expect("Something went wrong reading the file");
             
-            let path = "/home/ojferro/Projects/raytracer/assets/diamond.obj";
+            let path = "/home/ojferro/Projects/raytracer/assets/monkey.obj";
             let contents = fs::read_to_string(path).expect("Something went wrong reading the file");
         
             let vertices: Vec<vec3> = Scene::vec3_from_txt(&contents, 'v');
-            let faces: Vec<vec3> = Scene::vec3_from_txt(&contents, 'f');
+            let faces: Vec<Vec<usize>> = Scene::face_from_txt(&contents, 'f');
 
-            println!("{:?}", vertices);
-            println!("{:?}", faces);
-
+            Scene::add_Triangles(vertices, faces, scene, offset, scale);
         }
     }
 }

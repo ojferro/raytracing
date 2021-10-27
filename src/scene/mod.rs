@@ -53,9 +53,10 @@ mod scene{
             let single_sided = true;
             scene.add(Box::new(Plane::new(point3::new(0.0,1.0,0.0), point3::new(0.0,0.0,0.0), m6, single_sided)));
 
-            let offset = vec3::new(1.25,0.5,0.1);
-            let scale = 0.25;
-            Scene::from_obj(String::from("assets/diamond.obj"), &mut scene, offset, scale);
+            let offset = vec3::new(1.25,0.3,-0.3);
+            let scale = 0.28;
+            let path = "/home/ojferro/Projects/raytracer/assets/monkey.obj";
+            Scene::from_obj(String::from(path), &mut scene, offset, scale);
 
             scene
         }
@@ -96,9 +97,6 @@ mod scene{
 
             let contents = fs::read_to_string(path).expect("Something went wrong reading the file");
             
-            let path = "/home/ojferro/Projects/raytracer/assets/monkey.obj";
-            let contents = fs::read_to_string(path).expect("Something went wrong reading the file");
-        
             let vertices: Vec<vec3> = Scene::vec3_from_txt(&contents, 'v');
             let faces: Vec<Vec<usize>> = Scene::face_from_txt(&contents, 'f');
 

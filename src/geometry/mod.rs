@@ -5,11 +5,13 @@ pub use self::geometry::Cube;
 pub use self::geometry::Plane;
 pub use self::geometry::Triangle;
 pub use self::geometry::HittableList;
+pub use self::geometry::Mesh;
 
 pub use self::geometry::Material;
 pub use self::geometry::Metal;
 pub use self::geometry::Lambertian;
 pub use self::geometry::Dielectric;
+pub use self::geometry::BoundingVolume;
 
 mod geometry{
     use rand::Rng;
@@ -250,7 +252,6 @@ mod geometry{
             // Moller - Trumbore algorithm
 
             let eps: f64 = 0.0000001;
-
             let h = vec3::cross(&ray.dir, &self.edge1);
             let a = vec3::dot(&self.edge0, &h);
 
@@ -282,8 +283,6 @@ mod geometry{
 
             hit_record.p = ray.at(hit_record.t);
             hit_record.normal = self.normal;
-
-            hit_record.set_face_normal(ray, &hit_record.normal.clone());
 
             // TODO: Optimize unnecessary cloning
             let mut r_out = ray.clone();
@@ -329,6 +328,36 @@ mod geometry{
     }
     unsafe impl Send for HittableList {}
     unsafe impl Sync for HittableList {}
+
+    ///////////////////////////// Mesh Object ///////////////////////////////
+
+    pub struct Mesh{
+        pub bnd_vol: Box<dyn Hittable>, // Bounding volume must have material BoundingVolume, or it will interfere with ray
+        pub faces: HittableList, // HittableList of Triangles
+    }
+
+    impl Mesh{
+        pub fn new(bnd_vol: Box<dyn Hittable>, faces: HittableList) -> Self {
+            Self {bnd_vol: bnd_vol, faces: faces}
+        }
+    }
+
+    impl Hittable for Mesh{
+        fn hit(&self, ray: &Ray, attenuation: &mut colour, t_min: f64, t_max: f64, hit_record: &mut HitRecord) -> Option<Ray>{
+            let mut temp_hr = HitRecord{..Default::default()};
+            let mut current_ray = None;
+
+            if let Some(_r) = self.bnd_vol.hit(ray, attenuation, t_min, t_max, &mut temp_hr) {
+                if let Some(r_out) = self.faces.hit(ray, attenuation, t_min, t_max, hit_record){
+                    current_ray = Some(r_out);
+                }
+            }
+
+            current_ray            
+        }
+    }
+
+
 
     // Material Class
     pub trait Material: Send + Sync{
@@ -412,6 +441,15 @@ mod geometry{
             }
 
             *r_out = Ray::new(hit_record.p, dir);       
+        }
+    }
+
+    // Material that simply lets the ray continue through it. No attenuation, no bounce/refraction.
+    pub struct BoundingVolume{}
+
+    impl Material for BoundingVolume{
+        fn scatter(&self, r_in: &Ray, r_out: &mut Ray,hit_record: &HitRecord, attenuation: &mut colour){
+            // Do nothing
         }
     }
 

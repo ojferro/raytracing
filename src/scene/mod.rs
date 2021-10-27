@@ -84,14 +84,19 @@ mod scene{
         }
         pub fn add_Triangles(vertices: Vec<vec3>, faces: Vec<Vec<usize>>, scene: &mut HittableList, offset: vec3, scale: f64) {
             let single_sided = true;
+            let mut faces_hittable_list = HittableList::new();
             for f in faces{
                 let material: Box<dyn Material> = Box::new( Lambertian{albedo: colour::new(0.1, 0.7, 0.1)});
 
                 let v1 = vertices[f[0]-1]*scale + offset;
                 let v2 = vertices[f[1]-1]*scale + offset;
                 let v3 = vertices[f[2]-1]*scale + offset;
-                scene.add(Box::new(Triangle::new(v1, v2, v3, material, single_sided)));
+                faces_hittable_list.add(Box::new(Triangle::new(v1, v2, v3, material, single_sided)));
             }
+            let bbox = Box::new(Cube::new(offset, 1.0, 1.0, 1.0, Box::new( BoundingVolume{})));
+            let mesh = Mesh::new(bbox, faces_hittable_list);
+
+            scene.add(Box::new(mesh));
         }
         pub fn from_obj(path: String, scene: &mut HittableList, offset: vec3, scale: f64) {
 

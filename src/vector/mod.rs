@@ -18,6 +18,10 @@ mod vector{
             Self { x: x, y: y, z: z }
         }
 
+        pub fn new_from_Vec(vec: Vec<f64>) -> Self{
+            Self { x: vec[0], y: vec[1], z: vec[2] }
+        }
+
         pub fn length_squared(self) -> f64{
             self.x*self.x + self.y*self.y + self.z*self.z
         }

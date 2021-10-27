@@ -66,12 +66,13 @@ mod scene{
             scene
         }
 
-        pub fn vec3_from_txt(file_content: &String, symbol: char) -> Vec<Vec<f32>> {
-            let vecs: Vec<Vec<f32>> = file_content.split("\n")
+        pub fn vec3_from_txt(file_content: &String, symbol: char) -> Vec<vec3> {
+            let vecs: Vec<vec3> = file_content.split("\n")
                 .filter(|line| line.chars().nth(0) != None && line.chars().nth(0).unwrap() == symbol)
                 .map(|line| line.split_whitespace()
                     .filter(|v| v.chars().nth(0).unwrap() != symbol)
-                    .map(|v: &str| v.parse::<f32>().unwrap()).collect() )
+                    .map(|v: &str| v.parse::<f64>().unwrap()).collect() )
+                .map(|v| vec3::new_from_Vec(v))
                 .collect();
         
             vecs
@@ -83,8 +84,11 @@ mod scene{
             let path = "/home/ojferro/Projects/raytracer/assets/diamond.obj";
             let contents = fs::read_to_string(path).expect("Something went wrong reading the file");
         
-            let vertices: Vec<Vec<f32>> = Scene::vec3_from_txt(&contents, 'v');
-            let faces: Vec<Vec<f32>> = Scene::vec3_from_txt(&contents, 'f');
+            let vertices: Vec<vec3> = Scene::vec3_from_txt(&contents, 'v');
+            let faces: Vec<vec3> = Scene::vec3_from_txt(&contents, 'f');
+
+            println!("{:?}", vertices);
+            println!("{:?}", faces);
 
         }
     }

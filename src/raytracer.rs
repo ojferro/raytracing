@@ -7,6 +7,7 @@ use clap::{Arg, App};
 
 use std::thread;
 use std::sync::Arc;
+use std::io::Write;
 use crossbeam::{unbounded, TryRecvError};
 
 use scene::Scene;
@@ -47,9 +48,8 @@ fn from_u8_rgb(r: u8, g: u8, b: u8) -> u32 {
     (r << 16) | (g << 8) | b
 }
 
-fn write_colour(mut colour: colour, samples_per_px: usize, buffer: &mut Vec<u32>, i: usize, row: usize, image_width: usize, image_height: usize){
-    let scale = 1.0/samples_per_px as f64;
-    colour = colour*scale;
+fn write_colour(mut colour: colour, buffer: &mut Vec<u32>, i: usize, row: usize, percent_done: f64, total_spp: usize, image_width: usize, image_height: usize){
+    colour = colour/(total_spp as f64*percent_done);
     
     let ir = (256.0*clamp(colour.x, 0.0, 0.999)) as u8;
     let ig = (256.0*clamp(colour.y, 0.0, 0.999)) as u8;
@@ -58,9 +58,18 @@ fn write_colour(mut colour: colour, samples_per_px: usize, buffer: &mut Vec<u32>
     buffer[row*image_width + i] = from_u8_rgb(ir, ig, ib);
 }
 
-fn write_to_window(window: &mut minifb::Window, buffer: &mut Vec<u32>, width: usize, height: usize){
-    if window.is_open() {
+fn write_to_vec(mut colour: colour, total_spp: f64, img_vec: &mut Vec<Vec<colour>>, col: usize, row: usize){
+    img_vec[row][col] += colour;
+}
 
+fn write_to_window(window: &mut minifb::Window, buffer: &mut Vec<u32>, img_vec: &Vec<Vec<colour>>, percent_done: f64, total_spp: usize, width: usize, height: usize){
+    for row in 0..height{
+        for col in 0..width{
+            write_colour(img_vec[row][col], buffer, col, row, percent_done, total_spp, width, height);
+        }
+    }
+
+    if window.is_open() {
         window
             .update_with_buffer(&buffer, width, height)
             .unwrap();
@@ -125,6 +134,7 @@ fn main(){
 
     /////////// SET UP DISPAY /////////////
     let mut img_buffer: Vec<u32> = vec![0; image_width * image_height];
+    let mut img_vec: Vec<Vec<colour>> = vec![vec![vec3::new(0.0,0.0,0.0); image_width]; image_height];
     let mut window = Window::new("Test - ESC to exit", image_width as usize, image_height as usize, WindowOptions::default())
     .unwrap_or_else(|e| {
         panic!("{}", e);
@@ -191,12 +201,13 @@ fn main(){
         thread_handles.push(h);
     }
 
-    let total_num_pxls = image_width*image_height;
+    let total_num_pxls = image_width*image_height*samples_per_px;
     let mut ctr=0;
     loop{
         match receiver.try_recv() {
             Ok(received) => {
-                write_colour(received.c, received.num_samples, &mut img_buffer, received.col, received.row, image_width, image_height);
+                write_to_vec(received.c, samples_per_px as f64, &mut img_vec, received.col, received.row);
+                // write_colour(received.c, received.num_samples, &mut img_buffer, received.col, received.row, image_width, image_height);
                 ctr += 1;
             }
             Err(TryRecvError::Disconnected)  =>{ println!("\nINFO: Thread disconnected or finished."); }
@@ -205,15 +216,18 @@ fn main(){
         }
         
 
-        if ctr%(image_width*2)==0{
-            write_to_window(&mut window, &mut img_buffer, image_width, image_height);
+        if ctr%(image_width*num_threads/2)==0{
+            let percent_done = ctr as f64/total_num_pxls as f64;
+            write_to_window(&mut window, &mut img_buffer, &img_vec, percent_done, samples_per_px, image_width, image_height);
+            print!("\r{:.2}% done.      ", percent_done*100.0);
+            std::io::stdout().flush().unwrap();
         }
         if ctr == total_num_pxls{
             break;
         }
     }
 
-    write_to_window(&mut window, &mut img_buffer, image_width as usize, image_height as usize);
+    write_to_window(&mut window, &mut img_buffer, &img_vec, 1.0, samples_per_px, image_width as usize, image_height as usize);
 
     for t in thread_handles{
         t.join().unwrap();
@@ -247,23 +261,24 @@ struct PxData{
 fn calculate_some_pxls(thread_id: usize, num_threads: usize, _scene: &HittableList, cam: &Camera, sender: &crossbeam::Sender<PxData>,
     image_height: usize, image_width: usize, samples_per_px: usize, max_ray_bounces: usize, gamma_correction: bool){
     
-    for j in (thread_id .. image_height).step_by(num_threads){
-        let scene = Scene::get_scene();
-        for i in 0..image_width{
-            let mut px_colour = colour::new(0.0, 0.0, 0.0);
-            if samples_per_px > 1{
+    for current_spp in 0..cam.samples_per_px {
+        for j in (thread_id .. image_height).step_by(num_threads){
+            let scene = Scene::get_scene();
+            for i in 0..image_width{
+                let mut px_colour = colour::new(0.0, 0.0, 0.0);
+            // if samples_per_px > 1{
                 // TODO: Improve aliasing. Make non-random.
                 // TODO: Make anti-aliasing be a second stage process (i.e. have non-aliased preliminary result, then anti-alias).
-                for _s in 0..cam.samples_per_px {
-                    let u = (i as f64 + rand_f()) / (image_width-1) as f64;
-                    let v = (j as f64 + rand_f()) / (image_height-1) as f64;
-                    let r = cam.get_ray(u, v);
-                    px_colour += ray_colour(&r, &scene, max_ray_bounces, gamma_correction);
-                }
+            
+                let u = (i as f64 + rand_f()) / (image_width-1) as f64;
+                let v = (j as f64 + rand_f()) / (image_height-1) as f64;
+                let r = cam.get_ray(u, v);
+                px_colour = ray_colour(&r, &scene, max_ray_bounces, gamma_correction);
+            // }
                 let row;
                 if USE_BUFFER{ row = image_height-1-j; }else{ row = j;}
 
-                let px_data = PxData{c: px_colour, row: row, col: i, num_samples: samples_per_px};
+                let px_data = PxData{c: px_colour, row: row, col: i, num_samples: current_spp as usize};
                 sender.send(px_data).unwrap();
             }
         }

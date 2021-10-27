@@ -4,6 +4,7 @@ pub use self::scene::Scene;
 mod scene{
     use crate::vector::vec3;
     use crate::geometry::*;
+    use std::fs;
 
     use vec3 as colour;
     use vec3 as point3;
@@ -60,7 +61,31 @@ mod scene{
             let single_sided = true;
             scene.add(Box::new(Triangle::new(vec3::new(0.3, 1.0, -1.0), vec3::new(-0.3, 0.85, -1.0), vec3::new(-0.5, 1.0, -1.3), m7, single_sided)));
 
+            Scene::read_obj(String::from("assets/diamond.obj"));
+
             scene
+        }
+
+        pub fn vec3_from_txt(file_content: &String, symbol: char) -> Vec<Vec<f32>> {
+            let vecs: Vec<Vec<f32>> = file_content.split("\n")
+                .filter(|line| line.chars().nth(0) != None && line.chars().nth(0).unwrap() == symbol)
+                .map(|line| line.split_whitespace()
+                    .filter(|v| v.chars().nth(0).unwrap() != symbol)
+                    .map(|v: &str| v.parse::<f32>().unwrap()).collect() )
+                .collect();
+        
+            vecs
+        }
+        pub fn read_obj(path: String) {
+
+            let contents = fs::read_to_string(path).expect("Something went wrong reading the file");
+            
+            let path = "/home/ojferro/Projects/raytracer/assets/diamond.obj";
+            let contents = fs::read_to_string(path).expect("Something went wrong reading the file");
+        
+            let vertices: Vec<Vec<f32>> = Scene::vec3_from_txt(&contents, 'v');
+            let faces: Vec<Vec<f32>> = Scene::vec3_from_txt(&contents, 'f');
+
         }
     }
 }

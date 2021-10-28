@@ -30,7 +30,7 @@ use vec3 as point3;
 
 
 ////////////////////////// UTILITY FUNCTIONS /////////////////////////
-const USE_BUFFER: bool = true;
+const USE_BUFFER: bool = false;
 /// COLOUR
 
 fn rand_f()->f64{
@@ -73,6 +73,21 @@ fn write_to_window(window: &mut minifb::Window, buffer: &mut Vec<u32>, img_vec: 
         window
             .update_with_buffer(&buffer, width, height)
             .unwrap();
+    }
+}
+
+fn write_to_file(img_vec: &Vec<Vec<colour>>, total_spp: usize, width: usize, height: usize){
+    print!("P3\n{} {}\n255\n", width, height);
+    for row in 0..height{
+        for col in 0..width{
+            let colour = img_vec[row][col]/(total_spp as f64);
+    
+            let ir = (256.0*clamp(colour.x, 0.0, 0.999)) as u8;
+            let ig = (256.0*clamp(colour.y, 0.0, 0.999)) as u8;
+            let ib = (256.0*clamp(colour.z, 0.0, 0.999)) as u8;
+
+            print!("{} {} {}\n", ir, ig, ib);
+        }
     }
 }
 
@@ -125,8 +140,6 @@ fn main(){
 
     let img_width = args.value_of("image_width").unwrap_or("640");
     let image_width = img_width.parse::<usize>().expect("Image width must be a number!");
-
-    println!("spp {}, width {}", samples_per_px, image_width);
     
     // IMAGE
     let aspect_ratio = 16.0/9.0 as f64;
@@ -141,8 +154,6 @@ fn main(){
     });
     ///////////////////////////////////////
     
-    eprintln!("W: {}, H: {}", image_width, image_height);
-
     // Camera
 
     let cam_origin = point3::new(1.0,1.30,3.0);
@@ -162,8 +173,6 @@ fn main(){
 
     // Scene
     let mut scene = Scene::get_scene();
-
-    if !USE_BUFFER{ print!("P3\n{} {}\n255\n", image_width, image_height);}
 
     let num_threads = num_cpus::get()*10;
 
@@ -194,7 +203,7 @@ fn main(){
             calculate_some_pxls(context.thread_id, context.num_threads,  &(*context.scene), &context.cam, &context.sender, context.image_height,context.image_width,
                 context.samples_per_px, context.max_ray_bounces, context.gamma_correction);
             if let Ok(elapsed) = start_time.elapsed(){
-                println!("\nThread: {}, signing off. t: {}", context.thread_id, elapsed.as_millis());
+                eprintln!("\nThread: {}, signing off. t: {}", context.thread_id, elapsed.as_millis());
             }
 
         });
@@ -207,7 +216,6 @@ fn main(){
         match receiver.try_recv() {
             Ok(received) => {
                 write_to_vec(received.c, samples_per_px as f64, &mut img_vec, received.col, received.row);
-                // write_colour(received.c, received.num_samples, &mut img_buffer, received.col, received.row, image_width, image_height);
                 ctr += 1;
             }
             Err(TryRecvError::Disconnected)  =>{ println!("\nINFO: Thread disconnected or finished."); }
@@ -216,10 +224,10 @@ fn main(){
         }
         
 
-        if ctr%(image_width*num_threads/2)==0{
+        if ctr%(image_width*num_threads)==0{
             let percent_done = ctr as f64/total_num_pxls as f64;
             write_to_window(&mut window, &mut img_buffer, &img_vec, percent_done, samples_per_px, image_width, image_height);
-            print!("\r{:.2}% done.      ", percent_done*100.0);
+            eprint!("\r{:.2}% done.      ", percent_done*100.0);
             std::io::stdout().flush().unwrap();
         }
         if ctr == total_num_pxls{
@@ -234,6 +242,7 @@ fn main(){
     }
 
     eprintln!("\nDone!");
+    write_to_file(&img_vec, samples_per_px, image_width as usize, image_height as usize);
     while  window.is_open() && !window.is_key_down(Key::Escape) {}
 }
 
@@ -266,7 +275,6 @@ fn calculate_some_pxls(thread_id: usize, num_threads: usize, _scene: &HittableLi
             let scene = Scene::get_scene();
             for i in 0..image_width{
                 let mut px_colour = colour::new(0.0, 0.0, 0.0);
-            // if samples_per_px > 1{
                 // TODO: Improve aliasing. Make non-random.
                 // TODO: Make anti-aliasing be a second stage process (i.e. have non-aliased preliminary result, then anti-alias).
             
@@ -274,9 +282,8 @@ fn calculate_some_pxls(thread_id: usize, num_threads: usize, _scene: &HittableLi
                 let v = (j as f64 + rand_f()) / (image_height-1) as f64;
                 let r = cam.get_ray(u, v);
                 px_colour = ray_colour(&r, &scene, max_ray_bounces, gamma_correction);
-            // }
-                let row;
-                if USE_BUFFER{ row = image_height-1-j; }else{ row = j;}
+
+                let row = image_height-1-j; //Flip the image vertically
 
                 let px_data = PxData{c: px_colour, row: row, col: i, num_samples: current_spp as usize};
                 sender.send(px_data).unwrap();
